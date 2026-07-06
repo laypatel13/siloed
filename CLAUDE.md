@@ -124,7 +124,19 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
   log). Both behind `verify_workspace_access`. Wired into `main.py`.
 - `backend/routes/workspaces.py` — list/create/get workspace (built)
 - `backend/routes/documents.py` — upload/list documents (built)
-- `frontend/` — NOT YET BUILT (React/Vite skeleton only, no pages built)
+- `frontend/` — TanStack Start (React 19) + shadcn/ui skeleton; pages were
+  scaffolded visually first (Lovable) with mock data/timeouts, now being
+  wired to the real backend/Supabase one page at a time.
+- `frontend/src/lib/supabase.ts` — `supabase`: supabase-js client built
+  from `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`. Must point at the
+  same Supabase project the backend verifies tokens against
+  (`auth/deps.py`), or every API call 401s.
+- `frontend/src/routes/login.tsx` — real `supabase.auth.signInWithPassword`
+  call (replacing the earlier mock `setTimeout` + redirect). Shows
+  Supabase's own error message inline on failure, and redirects straight to
+  `/chat` on mount if a session already exists. Other routes
+  (chat/documents/tasks/tool-logs) are still on mock data pending their own
+  commits.
 - `scripts/test_isolation.py` — NOT YET BUILT. Manual pre-submission
   isolation/injection check: puts a fact in workspace A, queries from
   workspace B, asserts no leakage.
@@ -143,9 +155,9 @@ Done so far, in order:
 10. `feature(tools): send_slack_summary tool`
 11. `feature(chat): wire tool-calling loop into chat (model proposes, app executes)`
 12. `fix(injection): harden system prompt against embedded instructions in chunks`
+13. `feature(frontend): supabase-js login page`
 
 Remaining, in planned order:
-13. `feature(frontend): supabase-js login page`
 14. `feature(frontend): workspace switcher`
 15. `feature(frontend): document upload UI`
 16. `feature(frontend): chat window + citation display`

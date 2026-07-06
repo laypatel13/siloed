@@ -1,27 +1,52 @@
-import { useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
 function LoginPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Already signed in (e.g. refreshed this tab) -- skip straight past the
+  // form instead of making the user re-enter credentials.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        navigate({ to: "/chat" });
+      }
+    });
+  }, [navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      window.location.href = "/chat";
-    }, 800);
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    setIsLoading(false);
+
+    if (signInError) {
+      // Supabase's own message is safe to surface directly -- it never
+      // reveals whether the email or the password was the wrong part.
+      setError(signInError.message);
+      return;
+    }
+
+    navigate({ to: "/chat" });
   };
 
   return (
@@ -65,14 +90,15 @@ function LoginPage() {
               required
             />
           </div>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Signing in..." : "Sign In"}
           </Button>
         </form>
-
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Mock login for prototype — any credentials work.
-        </p>
       </div>
     </div>
   );
