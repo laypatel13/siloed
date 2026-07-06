@@ -36,6 +36,14 @@ function toCitations(apiCitations: ApiCitation[] | null | undefined): Citation[]
 }
 
 function ChatPage() {
+  return (
+    <AppShell>
+      <ChatPageContent />
+    </AppShell>
+  );
+}
+
+function ChatPageContent() {
   const activeWorkspace = useActiveWorkspace();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -131,85 +139,83 @@ function ChatPage() {
   };
 
   return (
-    <AppShell>
-      <div className="flex h-[calc(100vh-7rem)] flex-col">
-        <div className="mb-4 flex items-center justify-between">
-          <h1
-            className="text-2xl font-bold tracking-tight"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            Chat
-          </h1>
-          <Badge variant="secondary" className="font-normal">
-            {activeWorkspace.name}
-          </Badge>
-        </div>
+    <div className="flex h-[calc(100vh-7rem)] flex-col">
+      <div className="mb-4 flex items-center justify-between">
+        <h1
+          className="text-2xl font-bold tracking-tight"
+          style={{ fontFamily: "var(--font-heading)" }}
+        >
+          Chat
+        </h1>
+        <Badge variant="secondary" className="font-normal">
+          {activeWorkspace.name}
+        </Badge>
+      </div>
 
-        <div className="flex-1 overflow-y-auto rounded-lg border bg-card p-4">
-          <div className="space-y-6">
-            {isLoadingHistory && (
-              <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading conversation...
+      <div className="flex-1 overflow-y-auto rounded-lg border bg-card p-4">
+        <div className="space-y-6">
+          {isLoadingHistory && (
+            <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Loading conversation...
+            </div>
+          )}
+          {!isLoadingHistory && loadError && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {loadError}
+            </div>
+          )}
+          {!isLoadingHistory && !loadError && messages.length === 0 && !isTyping && (
+            <div className="flex h-full flex-col items-center justify-center py-12 text-center">
+              <BookOpen className="mb-3 h-8 w-8 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">
+                No conversation yet in {activeWorkspace.name}. Ask
+                something about this workspace&apos;s documents.
+              </p>
+            </div>
+          )}
+          {!isLoadingHistory &&
+            messages.map((msg) => (
+              <MessageBubble key={msg.id} message={msg} />
+            ))}
+          {isTyping && (
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
               </div>
-            )}
-            {!isLoadingHistory && loadError && (
-              <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                {loadError}
-              </div>
-            )}
-            {!isLoadingHistory && !loadError && messages.length === 0 && !isTyping && (
-              <div className="flex h-full flex-col items-center justify-center py-12 text-center">
-                <BookOpen className="mb-3 h-8 w-8 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground">
-                  No conversation yet in {activeWorkspace.name}. Ask
-                  something about this workspace&apos;s documents.
-                </p>
-              </div>
-            )}
-            {!isLoadingHistory &&
-              messages.map((msg) => (
-                <MessageBubble key={msg.id} message={msg} />
-              ))}
-            {isTyping && (
-              <div className="flex items-start gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-                  <BookOpen className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="rounded-lg border bg-muted px-4 py-2">
-                  <div className="flex gap-1">
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "0ms" }} />
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "150ms" }} />
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "300ms" }} />
-                  </div>
+              <div className="rounded-lg border bg-muted px-4 py-2">
+                <div className="flex gap-1">
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "0ms" }} />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "150ms" }} />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "300ms" }} />
                 </div>
               </div>
-            )}
-            <div ref={scrollRef} />
-          </div>
-        </div>
-
-        <div className="mt-4 flex items-end gap-2">
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask anything about your workspace documents..."
-            className="min-h-[48px] resize-none"
-            rows={1}
-          />
-          <Button
-            size="icon"
-            onClick={handleSend}
-            disabled={!input.trim() || isTyping}
-            className="shrink-0 h-10 w-10"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+            </div>
+          )}
+          <div ref={scrollRef} />
         </div>
       </div>
-    </AppShell>
+
+      <div className="mt-4 flex items-end gap-2">
+        <Textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask anything about your workspace documents..."
+          className="min-h-[48px] resize-none"
+          rows={1}
+        />
+        <Button
+          size="icon"
+          onClick={handleSend}
+          disabled={!input.trim() || isTyping}
+          className="shrink-0 h-10 w-10"
+        >
+          <Send className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
   );
 }
 

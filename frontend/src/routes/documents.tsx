@@ -21,6 +21,14 @@ export const Route = createFileRoute("/documents")({
 });
 
 function DocumentsPage() {
+  return (
+    <AppShell>
+      <DocumentsPageContent />
+    </AppShell>
+  );
+}
+
+function DocumentsPageContent() {
   const activeWorkspace = useActiveWorkspace();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -102,118 +110,116 @@ function DocumentsPage() {
   };
 
   return (
-    <AppShell>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1
-            className="text-2xl font-bold tracking-tight"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            Documents
-          </h1>
-          <Badge variant="secondary" className="font-normal">
-            {activeWorkspace.name}
-          </Badge>
-        </div>
-
-        <div
-          onDragOver={(e) => {
-            e.preventDefault();
-            setIsDragging(true);
-          }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={handleDrop}
-          className={`relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 transition-colors ${
-            isDragging
-              ? "border-primary bg-primary/5"
-              : "border-border bg-muted/30"
-          }`}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1
+          className="text-2xl font-bold tracking-tight"
+          style={{ fontFamily: "var(--font-heading)" }}
         >
-          <Upload className="mb-3 h-8 w-8 text-muted-foreground" />
-          <p className="text-sm font-medium">Drag & drop files here</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            or click to browse
-          </p>
-          <input
-            type="file"
-            multiple
-            className="absolute inset-0 cursor-pointer opacity-0"
-            onChange={handleFileInput}
-          />
-        </div>
+          Documents
+        </h1>
+        <Badge variant="secondary" className="font-normal">
+          {activeWorkspace.name}
+        </Badge>
+      </div>
 
-        {loadError && (
-          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {loadError}
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+        className={`relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 transition-colors ${
+          isDragging
+            ? "border-primary bg-primary/5"
+            : "border-border bg-muted/30"
+        }`}
+      >
+        <Upload className="mb-3 h-8 w-8 text-muted-foreground" />
+        <p className="text-sm font-medium">Drag & drop files here</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          or click to browse
+        </p>
+        <input
+          type="file"
+          multiple
+          className="absolute inset-0 cursor-pointer opacity-0"
+          onChange={handleFileInput}
+        />
+      </div>
+
+      {loadError && (
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {loadError}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {isLoading && (
+          <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading documents...
           </div>
         )}
-
-        <div className="space-y-2">
-          {isLoading && (
-            <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Loading documents...
-            </div>
-          )}
-          {!isLoading && documents.length === 0 && !loadError && (
-            <div className="rounded-lg border border-dashed py-12 text-center">
-              <FileText className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground">
-                No documents yet. Upload one to get started.
-              </p>
-            </div>
-          )}
-          {!isLoading &&
-            documents.map((doc) => (
-              <div
-                key={doc.id}
-                className="flex items-center gap-4 rounded-lg border bg-card px-4 py-3"
-              >
-                <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
-                <div className="flex-1 min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {doc.filename}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(doc.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {doc.status === "processing" && (
-                    <Badge variant="outline" className="gap-1 text-xs">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      Processing
-                    </Badge>
-                  )}
-                  {doc.status === "processed" && (
-                    <Badge variant="outline" className="gap-1 text-xs">
-                      <CheckCircle2 className="h-3 w-3 text-green-500" />
-                      Processed
-                    </Badge>
-                  )}
-                  {doc.status === "error" && (
-                    <Badge
-                      variant="outline"
-                      className="gap-1 text-xs border-destructive/40 text-destructive"
-                    >
-                      <AlertCircle className="h-3 w-3" />
-                      Failed
-                    </Badge>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDelete(doc.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+        {!isLoading && documents.length === 0 && !loadError && (
+          <div className="rounded-lg border border-dashed py-12 text-center">
+            <FileText className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground">
+              No documents yet. Upload one to get started.
+            </p>
+          </div>
+        )}
+        {!isLoading &&
+          documents.map((doc) => (
+            <div
+              key={doc.id}
+              className="flex items-center gap-4 rounded-lg border bg-card px-4 py-3"
+            >
+              <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-sm font-medium">
+                  {doc.filename}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(doc.createdAt).toLocaleDateString()}
+                </p>
               </div>
-            ))}
-        </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {doc.status === "processing" && (
+                  <Badge variant="outline" className="gap-1 text-xs">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Processing
+                  </Badge>
+                )}
+                {doc.status === "processed" && (
+                  <Badge variant="outline" className="gap-1 text-xs">
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    Processed
+                  </Badge>
+                )}
+                {doc.status === "error" && (
+                  <Badge
+                    variant="outline"
+                    className="gap-1 text-xs border-destructive/40 text-destructive"
+                  >
+                    <AlertCircle className="h-3 w-3" />
+                    Failed
+                  </Badge>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={() => handleDelete(doc.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
       </div>
-    </AppShell>
+    </div>
   );
 }
