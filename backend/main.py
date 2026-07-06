@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 
-from routes import workspaces
+from routes import documents, workspaces
 
 app = FastAPI(title="siloed")
 
@@ -22,9 +22,9 @@ def health():
 
 
 app.include_router(workspaces.router)
+app.include_router(documents.router)
 
 # Remaining routers are added incrementally as each module is built:
-# from routes import documents, chat, tool_logs
-# app.include_router(documents.router)
+# from routes import chat, tool_logs
 # app.include_router(chat.router)
 # app.include_router(tool_logs.router)
