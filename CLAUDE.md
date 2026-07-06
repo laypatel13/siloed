@@ -137,10 +137,19 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
   `/chat` on mount if a session already exists. Other routes
   (chat/documents/tasks/tool-logs) are still on mock data pending their own
   commits.
-- `frontend/src/lib/api.ts` — thin fetch wrapper for backend document
-  endpoints (`listDocuments`, `uploadDocument`), attaching the current
-  Supabase access token as `Authorization: Bearer`. Base URL from
-  `VITE_API_URL` (defaults to `http://localhost:8000` for local dev).
+- `frontend/src/lib/api.ts` — thin fetch wrapper for backend document and
+  chat endpoints (`listDocuments`, `uploadDocument`, `getChatHistory`,
+  `sendChatMessage`), attaching the current Supabase access token as
+  `Authorization: Bearer`. Base URL from `VITE_API_URL` (defaults to
+  `http://localhost:8000` for local dev). Maps the backend's
+  `Citation.marker` field to the frontend's `Citation.number` so the
+  existing `[n]` popover rendering in `chat.tsx` didn't need to change.
+- `frontend/src/routes/chat.tsx` — now wired to the real backend
+  (`GET`/`POST /workspaces/{workspace_id}/chat`) instead of the mock
+  timeout reply: loads history on mount/workspace switch, sends the typed
+  message, renders `answer` + mapped citations, and falls back to an
+  inline "something went wrong" assistant bubble (not a crash) if the
+  request fails. History/typing state resets on every workspace switch.
 - `frontend/src/routes/documents.tsx` — now wired to the real backend
   (`GET`/`POST /workspaces/{workspace_id}/documents`) instead of the mock
   `setTimeout` simulation: uploads show an optimistic "processing" row,
@@ -189,9 +198,9 @@ Done so far, in order:
 13. `feature(frontend): supabase-js login page`
 14. `feature(frontend): workspace switcher`
 15. `feature(frontend): document upload UI`
+16. `feature(frontend): chat window + citation display`
 
 Remaining, in planned order:
-16. `feature(frontend): chat window + citation display`
 17. `feature(frontend): tool-call log view`
 18. `feature(frontend): dashboard layout tying it together`
 19. `test: scripts/test_isolation.py (A/B leak test + injection test)`

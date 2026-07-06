@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Send, BookOpen, AlertCircle } from "lucide-react";
+import { Send, BookOpen, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -10,12 +10,13 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { AppShell } from "@/components/app-shell";
-import {
-  mockChatHistory,
-  type ChatMessage,
-  type Citation,
-} from "@/lib/mock-data";
+import { type ChatMessage, type Citation } from "@/lib/mock-data";
 import { useWorkspace } from "@/lib/workspace-context";
+import {
+  getChatHistory,
+  sendChatMessage,
+  type ApiCitation,
+} from "@/lib/api";
 
 export const Route = createFileRoute("/chat")({
   head: () => ({
@@ -24,38 +25,71 @@ export const Route = createFileRoute("/chat")({
   component: ChatPage,
 });
 
+function toCitations(apiCitations: ApiCitation[] | null | undefined): Citation[] | undefined {
+  if (!apiCitations || apiCitations.length === 0) return undefined;
+  return apiCitations.map((c) => ({
+    number: c.marker,
+    filename: c.filename,
+    snippet: c.snippet,
+    similarity: c.similarity,
+  }));
+}
+
 function ChatPage() {
   const { activeWorkspace } = useWorkspace();
-  const [messages, setMessages] = useState<ChatMessage[]>(() =>
-    mockChatHistory.filter((m) => m.workspaceId === activeWorkspace.id)
-  );
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const loadHistory = useCallback(async () => {
+    setIsLoadingHistory(true);
+    setLoadError(null);
+    try {
+      const rows = await getChatHistory(activeWorkspace.id);
+      setMessages(
+        rows.map((row, i) => ({
+          id: `${activeWorkspace.id}-${i}-${row.created_at}`,
+          workspaceId: activeWorkspace.id,
+          role: row.role,
+          content: row.content,
+          citations: toCitations(row.citations),
+          createdAt: row.created_at,
+        }))
+      );
+    } catch (err) {
+      setLoadError(
+        err instanceof Error ? err.message : "Failed to load chat history"
+      );
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, [activeWorkspace.id]);
 
   // Switching workspaces must not carry chat history (or an in-flight
   // typing indicator) over from the previous workspace -- each workspace's
   // chat is grounded only in that workspace's own documents.
   useEffect(() => {
-    setMessages(
-      mockChatHistory.filter((m) => m.workspaceId === activeWorkspace.id)
-    );
     setInput("");
     setIsTyping(false);
-  }, [activeWorkspace.id]);
+    loadHistory();
+  }, [loadHistory]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  const handleSend = async () => {
+    if (!input.trim() || isTyping) return;
 
+    const question = input.trim();
     const userMsg: ChatMessage = {
-      id: `msg-${Date.now()}`,
+      id: `local-${Date.now()}`,
       workspaceId: activeWorkspace.id,
       role: "user",
-      content: input.trim(),
+      content: question,
       createdAt: new Date().toISOString(),
     };
 
@@ -63,18 +97,30 @@ function ChatPage() {
     setInput("");
     setIsTyping(true);
 
-    setTimeout(() => {
+    try {
+      const response = await sendChatMessage(activeWorkspace.id, question);
       const assistantMsg: ChatMessage = {
-        id: `msg-${Date.now() + 1}`,
+        id: `local-${Date.now() + 1}`,
         workspaceId: activeWorkspace.id,
         role: "assistant",
-        content:
-          "That's a great question. Based on the documents in this workspace, I can help you explore that further. Would you like me to save this as a task or search for related information in your uploaded files?",
+        content: response.answer,
+        citations: toCitations(response.citations),
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
+    } catch (err) {
+      const errorMsg: ChatMessage = {
+        id: `local-${Date.now() + 1}`,
+        workspaceId: activeWorkspace.id,
+        role: "assistant",
+        content:
+          "Something went wrong sending that message. Please try again.",
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -101,7 +147,19 @@ function ChatPage() {
 
         <div className="flex-1 overflow-y-auto rounded-lg border bg-card p-4">
           <div className="space-y-6">
-            {messages.length === 0 && !isTyping && (
+            {isLoadingHistory && (
+              <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading conversation...
+              </div>
+            )}
+            {!isLoadingHistory && loadError && (
+              <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {loadError}
+              </div>
+            )}
+            {!isLoadingHistory && !loadError && messages.length === 0 && !isTyping && (
               <div className="flex h-full flex-col items-center justify-center py-12 text-center">
                 <BookOpen className="mb-3 h-8 w-8 text-muted-foreground/50" />
                 <p className="text-sm text-muted-foreground">
@@ -110,9 +168,10 @@ function ChatPage() {
                 </p>
               </div>
             )}
-            {messages.map((msg) => (
-              <MessageBubble key={msg.id} message={msg} />
-            ))}
+            {!isLoadingHistory &&
+              messages.map((msg) => (
+                <MessageBubble key={msg.id} message={msg} />
+              ))}
             {isTyping && (
               <div className="flex items-start gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">

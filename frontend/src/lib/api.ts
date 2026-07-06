@@ -11,6 +11,66 @@ async function authHeaders(): Promise<HeadersInit> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+export interface ApiCitation {
+  marker: number;
+  document_id: string;
+  filename: string;
+  chunk_index: number;
+  snippet: string;
+  similarity: number;
+}
+
+export interface ApiExecutedToolCall {
+  tool_name: string;
+  status: "success" | "error";
+  result?: Record<string, unknown> | null;
+  error?: string | null;
+}
+
+export interface ChatResponse {
+  answer: string;
+  citations: ApiCitation[];
+  grounded: boolean;
+  tool_calls: ApiExecutedToolCall[];
+}
+
+export interface ApiChatHistoryRow {
+  role: "user" | "assistant";
+  content: string;
+  citations: ApiCitation[] | null;
+  created_at: string;
+}
+
+export async function getChatHistory(
+  workspaceId: string
+): Promise<ApiChatHistoryRow[]> {
+  const res = await fetch(`${API_URL}/workspaces/${workspaceId}/chat`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to load chat history (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function sendChatMessage(
+  workspaceId: string,
+  message: string
+): Promise<ChatResponse> {
+  const res = await fetch(`${API_URL}/workspaces/${workspaceId}/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(await authHeaders()),
+    },
+    body: JSON.stringify({ message }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to send message (${res.status})`);
+  }
+  return res.json();
+}
+
 export interface ApiDocument {
   id: string;
   filename: string;
