@@ -65,7 +65,10 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
 - `backend/ingestion/embedder.py` — Gemini embedding wrapper
 - `backend/ingestion/pipeline.py` — ties extract/chunk/embed/store together,
   idempotent via content_hash
-- `backend/retrieval/` — NOT YET BUILT. Scoped vector search goes here.
+- `backend/retrieval/vector_search.py` — `search_chunks(workspace_id, query,
+  top_k)`: embeds the query, runs a cosine-similarity search with
+  `where workspace_id = %s` inside the SQL itself, joins `documents` for
+  filename. Used by chat/ once that's built.
 - `backend/chat/` — NOT YET BUILT. RAG prompt construction + citations +
   "I don't know" fallback goes here.
 - `backend/tools/` — NOT YET BUILT. Tool schemas, registry, executor,
@@ -85,9 +88,9 @@ Done so far, in order:
 2. `chore: rename project to siloed`
 3. `feature(auth): supabase login + workspace model`
 4. `feature(ingestion): extractor, chunker, embedder, idempotent pipeline + upload route`
+5. `feature(retrieval): scoped vector search (workspace filter inside query)`
 
 Remaining, in planned order:
-5. `feature(retrieval): scoped vector search (workspace filter inside query)`
 6. `feature(chat): RAG prompt construction + citation formatting`
 7. `feature(chat): honest "I don't know" fallback + chat route`
 8. `feature(tools): pydantic schemas + tool registry`
