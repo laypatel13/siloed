@@ -137,7 +137,17 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
   `/chat` on mount if a session already exists. Other routes
   (chat/documents/tasks/tool-logs) are still on mock data pending their own
   commits.
-- `frontend/src/lib/workspace-context.tsx` — `WorkspaceProvider` /
+- `frontend/src/lib/api.ts` — thin fetch wrapper for backend document
+  endpoints (`listDocuments`, `uploadDocument`), attaching the current
+  Supabase access token as `Authorization: Bearer`. Base URL from
+  `VITE_API_URL` (defaults to `http://localhost:8000` for local dev).
+- `frontend/src/routes/documents.tsx` — now wired to the real backend
+  (`GET`/`POST /workspaces/{workspace_id}/documents`) instead of the mock
+  `setTimeout` simulation: uploads show an optimistic "processing" row,
+  then either refresh from the server (picking up the backend's
+  idempotency check) or flip to a "Failed" badge on error. List re-fetches
+  whenever `activeWorkspace` changes. Delete is still local-only -- there's
+  no DELETE route on the backend yet.
   `useWorkspace()`: holds the single active-workspace id for the whole app,
   seeded from `mockWorkspaces` and persisted to `localStorage` so a reload
   keeps the same workspace selected. This is the frontend-only stand-in for
@@ -178,9 +188,9 @@ Done so far, in order:
 12. `fix(injection): harden system prompt against embedded instructions in chunks`
 13. `feature(frontend): supabase-js login page`
 14. `feature(frontend): workspace switcher`
+15. `feature(frontend): document upload UI`
 
 Remaining, in planned order:
-15. `feature(frontend): document upload UI`
 16. `feature(frontend): chat window + citation display`
 17. `feature(frontend): tool-call log view`
 18. `feature(frontend): dashboard layout tying it together`
