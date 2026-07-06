@@ -71,6 +71,44 @@ export async function sendChatMessage(
   return res.json();
 }
 
+export interface ApiTask {
+  id: string;
+  title: string;
+  description: string | null;
+  created_at: string;
+}
+
+export async function listTasks(workspaceId: string): Promise<ApiTask[]> {
+  const res = await fetch(`${API_URL}/workspaces/${workspaceId}/tasks`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to load tasks (${res.status})`);
+  }
+  return res.json();
+}
+
+export interface ApiToolCall {
+  id: string;
+  tool_name: string;
+  arguments: Record<string, unknown>;
+  result: Record<string, unknown> | null;
+  status: "success" | "error";
+  created_at: string;
+}
+
+export async function listToolCalls(
+  workspaceId: string
+): Promise<ApiToolCall[]> {
+  const res = await fetch(`${API_URL}/workspaces/${workspaceId}/tool-calls`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to load tool logs (${res.status})`);
+  }
+  return res.json();
+}
+
 export interface ApiDocument {
   id: string;
   filename: string;
