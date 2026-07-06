@@ -15,6 +15,7 @@ import {
   type ChatMessage,
   type Citation,
 } from "@/lib/mock-data";
+import { useWorkspace } from "@/lib/workspace-context";
 
 export const Route = createFileRoute("/chat")({
   head: () => ({
@@ -24,10 +25,24 @@ export const Route = createFileRoute("/chat")({
 });
 
 function ChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>(mockChatHistory);
+  const { activeWorkspace } = useWorkspace();
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    mockChatHistory.filter((m) => m.workspaceId === activeWorkspace.id)
+  );
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Switching workspaces must not carry chat history (or an in-flight
+  // typing indicator) over from the previous workspace -- each workspace's
+  // chat is grounded only in that workspace's own documents.
+  useEffect(() => {
+    setMessages(
+      mockChatHistory.filter((m) => m.workspaceId === activeWorkspace.id)
+    );
+    setInput("");
+    setIsTyping(false);
+  }, [activeWorkspace.id]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -38,7 +53,7 @@ function ChatPage() {
 
     const userMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
-      workspaceId: "ws-1",
+      workspaceId: activeWorkspace.id,
       role: "user",
       content: input.trim(),
       createdAt: new Date().toISOString(),
@@ -51,7 +66,7 @@ function ChatPage() {
     setTimeout(() => {
       const assistantMsg: ChatMessage = {
         id: `msg-${Date.now() + 1}`,
-        workspaceId: "ws-1",
+        workspaceId: activeWorkspace.id,
         role: "assistant",
         content:
           "That's a great question. Based on the documents in this workspace, I can help you explore that further. Would you like me to save this as a task or search for related information in your uploaded files?",
@@ -80,12 +95,21 @@ function ChatPage() {
             Chat
           </h1>
           <Badge variant="secondary" className="font-normal">
-            Product Team
+            {activeWorkspace.name}
           </Badge>
         </div>
 
         <div className="flex-1 overflow-y-auto rounded-lg border bg-card p-4">
           <div className="space-y-6">
+            {messages.length === 0 && !isTyping && (
+              <div className="flex h-full flex-col items-center justify-center py-12 text-center">
+                <BookOpen className="mb-3 h-8 w-8 text-muted-foreground/50" />
+                <p className="text-sm text-muted-foreground">
+                  No conversation yet in {activeWorkspace.name}. Ask
+                  something about this workspace&apos;s documents.
+                </p>
+              </div>
+            )}
             {messages.map((msg) => (
               <MessageBubble key={msg.id} message={msg} />
             ))}

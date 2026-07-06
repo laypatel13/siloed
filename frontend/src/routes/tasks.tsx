@@ -3,6 +3,7 @@ import { CheckSquare, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AppShell } from "@/components/app-shell";
 import { mockTasks } from "@/lib/mock-data";
+import { useWorkspace } from "@/lib/workspace-context";
 
 export const Route = createFileRoute("/tasks")({
   head: () => ({ meta: [{ title: "Tasks | Siloed" }] }),
@@ -10,7 +11,8 @@ export const Route = createFileRoute("/tasks")({
 });
 
 function TasksPage() {
-  const tasks = mockTasks.filter((t) => t.workspaceId === "ws-1");
+  const { activeWorkspace } = useWorkspace();
+  const tasks = mockTasks.filter((t) => t.workspaceId === activeWorkspace.id);
 
   return (
     <AppShell>
@@ -23,7 +25,7 @@ function TasksPage() {
             Tasks
           </h1>
           <Badge variant="secondary" className="font-normal">
-            Product Team
+            {activeWorkspace.name}
           </Badge>
         </div>
 

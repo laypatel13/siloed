@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/app-shell";
 import { mockToolLogs } from "@/lib/mock-data";
+import { useWorkspace } from "@/lib/workspace-context";
 
 export const Route = createFileRoute("/tool-logs")({
   head: () => ({ meta: [{ title: "Tool Logs | Siloed" }] }),
@@ -12,7 +13,10 @@ export const Route = createFileRoute("/tool-logs")({
 });
 
 function ToolLogsPage() {
-  const logs = mockToolLogs.filter((l) => l.workspaceId === "ws-1");
+  const { activeWorkspace } = useWorkspace();
+  const logs = mockToolLogs.filter(
+    (l) => l.workspaceId === activeWorkspace.id
+  );
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const toggleExpand = (id: string) => {
@@ -35,7 +39,7 @@ function ToolLogsPage() {
             Tool Logs
           </h1>
           <Badge variant="secondary" className="font-normal">
-            Product Team
+            {activeWorkspace.name}
           </Badge>
         </div>
 

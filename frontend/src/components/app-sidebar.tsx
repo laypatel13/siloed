@@ -8,6 +8,7 @@ import {
   LogOut,
   User,
   ChevronDown,
+  Check,
 } from "lucide-react";
 import {
   Sidebar,
@@ -19,7 +20,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { currentUser, mockWorkspaces } from "@/lib/mock-data";
+import { currentUser } from "@/lib/mock-data";
+import { useWorkspace } from "@/lib/workspace-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,6 +43,8 @@ export function AppSidebar() {
   const currentPath = useRouterState({
     select: (s) => s.location.pathname,
   });
+  const { workspaces, activeWorkspace, setActiveWorkspaceId } =
+    useWorkspace();
 
   return (
     <Sidebar collapsible="icon">
@@ -69,7 +73,7 @@ export function AppSidebar() {
                 {!collapsed && (
                   <>
                     <span className="flex-1 truncate text-left font-medium">
-                      {mockWorkspaces[0].name}
+                      {activeWorkspace.name}
                     </span>
                     <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   </>
@@ -77,10 +81,17 @@ export function AppSidebar() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
-              {mockWorkspaces.map((ws) => (
-                <DropdownMenuItem key={ws.id} className="cursor-pointer">
+              {workspaces.map((ws) => (
+                <DropdownMenuItem
+                  key={ws.id}
+                  className="cursor-pointer"
+                  onSelect={() => setActiveWorkspaceId(ws.id)}
+                >
                   <Layers className="mr-2 h-4 w-4" />
-                  {ws.name}
+                  <span className="flex-1 truncate">{ws.name}</span>
+                  {ws.id === activeWorkspace.id && (
+                    <Check className="ml-2 h-4 w-4 text-primary" />
+                  )}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>

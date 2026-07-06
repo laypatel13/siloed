@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Upload, FileText, Trash2, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AppShell } from "@/components/app-shell";
 import { mockDocuments, type Document } from "@/lib/mock-data";
+import { useWorkspace } from "@/lib/workspace-context";
 
 export const Route = createFileRoute("/documents")({
   head: () => ({ meta: [{ title: "Documents | Siloed" }] }),
@@ -12,9 +13,22 @@ export const Route = createFileRoute("/documents")({
 });
 
 function DocumentsPage() {
-  const [documents, setDocuments] = useState<Document[]>(mockDocuments.filter((d) => d.workspaceId === "ws-1"));
+  const { activeWorkspace } = useWorkspace();
+  const [documents, setDocuments] = useState<Document[]>(() =>
+    mockDocuments.filter((d) => d.workspaceId === activeWorkspace.id)
+  );
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
+
+  // Re-scope the visible documents whenever the active workspace changes --
+  // this is the frontend mirror of the backend's isolation guarantee: never
+  // show a document (even a locally-added mock one) from another workspace.
+  useEffect(() => {
+    setDocuments(
+      mockDocuments.filter((d) => d.workspaceId === activeWorkspace.id)
+    );
+    setUploading(null);
+  }, [activeWorkspace.id]);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -27,7 +41,7 @@ function DocumentsPage() {
     const tempId = `temp-${Date.now()}`;
     const tempDoc: Document = {
       id: tempId,
-      workspaceId: "ws-1",
+      workspaceId: activeWorkspace.id,
       filename,
       contentHash: "temp",
       status: "processing",
@@ -67,7 +81,7 @@ function DocumentsPage() {
             Documents
           </h1>
           <Badge variant="secondary" className="font-normal">
-            Product Team
+            {activeWorkspace.name}
           </Badge>
         </div>
 

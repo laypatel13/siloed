@@ -137,6 +137,27 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
   `/chat` on mount if a session already exists. Other routes
   (chat/documents/tasks/tool-logs) are still on mock data pending their own
   commits.
+- `frontend/src/lib/workspace-context.tsx` — `WorkspaceProvider` /
+  `useWorkspace()`: holds the single active-workspace id for the whole app,
+  seeded from `mockWorkspaces` and persisted to `localStorage` so a reload
+  keeps the same workspace selected. This is the frontend-only stand-in for
+  the isolation guarantee the backend enforces in SQL: every page reads
+  `activeWorkspace` from context rather than hardcoding `"ws-1"`, so no
+  workspace's data (chat, documents, tasks, tool logs) is ever rendered
+  while another workspace is active. Wired in at `AppShell`, one level
+  above the sidebar and all page content.
+- `frontend/src/components/app-sidebar.tsx` — workspace dropdown now reads
+  `workspaces`/`activeWorkspace` from `useWorkspace()` and calls
+  `setActiveWorkspaceId` on select (previously rendered the list but did
+  nothing on click); a check icon marks the current workspace.
+- `frontend/src/routes/{chat,documents,tasks,tool-logs}.tsx` — all four
+  filter their mock data by `activeWorkspace.id` instead of the hardcoded
+  `"ws-1"`, and show `activeWorkspace.name` in the header badge instead of
+  a hardcoded "Product Team". `chat.tsx` and `documents.tsx` also reset
+  their local component state (messages/input/typing, documents/uploading)
+  in a `useEffect` keyed on `activeWorkspace.id`, so switching workspaces
+  can't leak in-progress local state (e.g. a message being typed, or a
+  document mid-"upload") from the workspace you just left.
 - `scripts/test_isolation.py` — NOT YET BUILT. Manual pre-submission
   isolation/injection check: puts a fact in workspace A, queries from
   workspace B, asserts no leakage.
@@ -156,9 +177,9 @@ Done so far, in order:
 11. `feature(chat): wire tool-calling loop into chat (model proposes, app executes)`
 12. `fix(injection): harden system prompt against embedded instructions in chunks`
 13. `feature(frontend): supabase-js login page`
+14. `feature(frontend): workspace switcher`
 
 Remaining, in planned order:
-14. `feature(frontend): workspace switcher`
 15. `feature(frontend): document upload UI`
 16. `feature(frontend): chat window + citation display`
 17. `feature(frontend): tool-call log view`
