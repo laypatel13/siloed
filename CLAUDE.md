@@ -70,9 +70,16 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
   `where workspace_id = %s` inside the SQL itself, joins `documents` for
   filename. Used by chat/ once that's built.
 - `backend/chat/prompt.py` — `build_messages(query, chunks)`: builds the
-  system + user messages for the LLM. System prompt frames retrieved
-  chunks as untrusted data, requires inline [n] citations, forbids
-  outside knowledge. `build_context_block` numbers sources 1..n.
+  system + user messages for the LLM. Injection hardening (commit 12, after
+  adversarial testing): injection-defense is rule #1 in the system prompt,
+  naming concrete attack patterns (not just one example); each chunk is
+  wrapped in `<source>...</source>` fences (`build_context_block`) rather
+  than a bare prefix, giving the model a structural boundary; a literal
+  `<source>`/`</source>` string inside a chunk's own content is escaped
+  first (`_defang_source_tags`) so a chunk can't break out of its own
+  fence; a `SOURCES_REMINDER` repeats the rule immediately before the
+  QUESTION line (sandwich defense). Requires inline [n] citations, forbids
+  outside knowledge.
 - `backend/chat/citations.py` — `build_citations(answer_text, chunks)`:
   parses [n] markers out of the model's answer and resolves them back to
   filename/snippet/similarity for the frontend. Out-of-range markers are
@@ -135,9 +142,9 @@ Done so far, in order:
 9. `feature(tools): save_task tool + execution + logging`
 10. `feature(tools): send_slack_summary tool`
 11. `feature(chat): wire tool-calling loop into chat (model proposes, app executes)`
+12. `fix(injection): harden system prompt against embedded instructions in chunks`
 
 Remaining, in planned order:
-12. `fix(injection): harden system prompt against embedded instructions in chunks`
 13. `feature(frontend): supabase-js login page`
 14. `feature(frontend): workspace switcher`
 15. `feature(frontend): document upload UI`
