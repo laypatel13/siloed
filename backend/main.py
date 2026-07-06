@@ -3,7 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 
-app = FastAPI(title="Multi-Workspace Document Assistant")
+from routes import workspaces
+
+app = FastAPI(title="siloed")
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,9 +21,10 @@ def health():
     return {"status": "ok", "environment": settings.environment}
 
 
-# Routers are added incrementally as each module is built:
-# from routes import workspaces, documents, chat, tool_logs
-# app.include_router(workspaces.router)
+app.include_router(workspaces.router)
+
+# Remaining routers are added incrementally as each module is built:
+# from routes import documents, chat, tool_logs
 # app.include_router(documents.router)
 # app.include_router(chat.router)
 # app.include_router(tool_logs.router)

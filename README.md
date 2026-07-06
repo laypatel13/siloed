@@ -1,4 +1,6 @@
-# Multi-Workspace Document Assistant (RAG & Tool Calling)
+# siloed
+
+Multi-Workspace Document Assistant (RAG & Tool Calling)
 
 A multi-tenant RAG assistant. Users sign in, manage multiple workspaces, upload
 documents into a workspace, chat with an assistant grounded strictly in that
