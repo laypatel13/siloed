@@ -1,4 +1,5 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   MessageSquare,
   FileText,
@@ -6,7 +7,6 @@ import {
   Wrench,
   Layers,
   LogOut,
-  User,
   ChevronDown,
   Check,
 } from "lucide-react";
@@ -20,8 +20,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { currentUser } from "@/lib/mock-data";
 import { useWorkspace } from "@/lib/workspace-context";
+import { supabase } from "@/lib/supabase";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +45,25 @@ export function AppSidebar() {
   });
   const { workspaces, activeWorkspace, setActiveWorkspaceId } =
     useWorkspace();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState<string | null>(null);
+
+  // AppShell's WorkspaceGate only renders children once a workspace is
+  // active, so this only guards against a render race, not real usage.
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setEmail(data.user?.email ?? null);
+    });
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/login" });
+  };
+
+  if (!activeWorkspace) return null;
+
+  const initials = (email ?? "?").slice(0, 2).toUpperCase();
 
   return (
     <Sidebar collapsible="icon">
@@ -123,25 +142,23 @@ export function AppSidebar() {
         <div className="flex items-center gap-2 px-1">
           <Avatar className="h-8 w-8 shrink-0">
             <AvatarFallback className="bg-primary text-primary-foreground text-xs font-medium">
-              {currentUser.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")}
+              {initials}
             </AvatarFallback>
           </Avatar>
           {!collapsed && (
             <div className="flex flex-1 min-w-0 items-center justify-between">
               <div className="flex flex-col min-w-0">
                 <span className="truncate text-sm font-medium">
-                  {currentUser.name}
-                </span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {currentUser.email}
+                  {email ?? "Signed in"}
                 </span>
               </div>
-              <Link to="/login" className="shrink-0">
+              <button
+                onClick={handleSignOut}
+                className="shrink-0"
+                aria-label="Sign out"
+              >
                 <LogOut className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
-              </Link>
+              </button>
             </div>
           )}
         </div>

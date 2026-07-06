@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CheckSquare, Calendar, Loader2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AppShell } from "@/components/app-shell";
-import { useWorkspace } from "@/lib/workspace-context";
+import { useActiveWorkspace } from "@/lib/workspace-context";
 import { listTasks, type ApiTask } from "@/lib/api";
 
 export const Route = createFileRoute("/tasks")({
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/tasks")({
 });
 
 function TasksPage() {
-  const { activeWorkspace } = useWorkspace();
+  const activeWorkspace = useActiveWorkspace();
   const [tasks, setTasks] = useState<ApiTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);

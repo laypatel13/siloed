@@ -137,14 +137,35 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
   `/chat` on mount if a session already exists. Other routes
   (chat/documents/tasks/tool-logs) are still on mock data pending their own
   commits.
-- `frontend/src/lib/api.ts` — thin fetch wrapper for backend document,
-  chat, task, and tool-call endpoints (`listDocuments`, `uploadDocument`,
-  `getChatHistory`, `sendChatMessage`, `listTasks`, `listToolCalls`),
-  attaching the current Supabase access token as `Authorization: Bearer`.
-  Base URL from `VITE_API_URL` (defaults to `http://localhost:8000` for
-  local dev). Maps the backend's `Citation.marker` field to the frontend's
-  `Citation.number` so the existing `[n]` popover rendering in `chat.tsx`
-  didn't need to change.
+- `frontend/src/lib/api.ts` — thin fetch wrapper for backend workspace,
+  document, chat, task, and tool-call endpoints (`listWorkspaces`,
+  `createWorkspace`, `listDocuments`, `uploadDocument`, `getChatHistory`,
+  `sendChatMessage`, `listTasks`, `listToolCalls`), attaching the current
+  Supabase access token as `Authorization: Bearer`. Base URL from
+  `VITE_API_URL` (defaults to `http://localhost:8000` for local dev). Maps
+  the backend's `Citation.marker` field to the frontend's `Citation.number`
+  so the existing `[n]` popover rendering in `chat.tsx` didn't need to
+  change.
+- `frontend/src/lib/workspace-context.tsx` — now fetches real workspaces
+  from `GET /workspaces` (previously read the `mockWorkspaces` constant)
+  and exposes `isLoading`/`error`/`createWorkspace` alongside the existing
+  `activeWorkspace`/`setActiveWorkspaceId`. `activeWorkspace` is
+  `ApiWorkspace | null` at the type level (empty for a brand-new user with
+  no workspaces yet); `useActiveWorkspace()` is the non-null variant pages
+  use, since `AppShell`'s `WorkspaceGate` guarantees one is active before
+  rendering any page content.
+- `frontend/src/components/app-shell.tsx` — now the single place that ties
+  the dashboard together: `AuthGuard` redirects to `/login` if there's no
+  Supabase session (checked on mount and on every auth-state change, e.g.
+  token expiry or sign-out in another tab); `WorkspaceGate` blocks
+  rendering the sidebar/page content until workspaces have loaded, and
+  prompts a brand-new user to create their first workspace instead of
+  showing an empty dashboard. Every route (chat/documents/tasks/tool-logs)
+  renders through `AppShell`, so both guards apply everywhere at once.
+- `frontend/src/components/app-sidebar.tsx` — footer now shows the real
+  signed-in user's email (from `supabase.auth.getUser()`) instead of the
+  mock `currentUser`, and "sign out" calls `supabase.auth.signOut()` and
+  navigates to `/login` instead of just linking there.
 - `frontend/src/routes/tasks.tsx`, `frontend/src/routes/tool-logs.tsx` —
   wired to `GET /workspaces/{workspace_id}/tasks` and
   `GET /workspaces/{workspace_id}/tool-calls` respectively, replacing the
@@ -207,9 +228,9 @@ Done so far, in order:
 15. `feature(frontend): document upload UI`
 16. `feature(frontend): chat window + citation display`
 17. `feature(frontend): tool-call log view`
+18. `feature(frontend): dashboard layout tying it together`
 
 Remaining, in planned order:
-18. `feature(frontend): dashboard layout tying it together`
 19. `test: scripts/test_isolation.py (A/B leak test + injection test)`
 20. `fix: ...` (whatever isolation/injection testing turns up)
 21. `docs: README run instructions, .env.example completeness check`

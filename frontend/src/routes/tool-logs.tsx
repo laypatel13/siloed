@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AppShell } from "@/components/app-shell";
-import { useWorkspace } from "@/lib/workspace-context";
+import { useActiveWorkspace } from "@/lib/workspace-context";
 import { listToolCalls, type ApiToolCall } from "@/lib/api";
 
 export const Route = createFileRoute("/tool-logs")({
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/tool-logs")({
 });
 
 function ToolLogsPage() {
-  const { activeWorkspace } = useWorkspace();
+  const activeWorkspace = useActiveWorkspace();
   const [logs, setLogs] = useState<ApiToolCall[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);

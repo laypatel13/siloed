@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AppShell } from "@/components/app-shell";
 import { type Document } from "@/lib/mock-data";
-import { useWorkspace } from "@/lib/workspace-context";
+import { useActiveWorkspace } from "@/lib/workspace-context";
 import { listDocuments, uploadDocument } from "@/lib/api";
 
 export const Route = createFileRoute("/documents")({
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/documents")({
 });
 
 function DocumentsPage() {
-  const { activeWorkspace } = useWorkspace();
+  const activeWorkspace = useActiveWorkspace();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(true);

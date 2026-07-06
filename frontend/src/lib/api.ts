@@ -71,6 +71,38 @@ export async function sendChatMessage(
   return res.json();
 }
 
+export interface ApiWorkspace {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+}
+
+export async function listWorkspaces(): Promise<ApiWorkspace[]> {
+  const res = await fetch(`${API_URL}/workspaces`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to load workspaces (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function createWorkspace(name: string): Promise<ApiWorkspace> {
+  const res = await fetch(`${API_URL}/workspaces`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(await authHeaders()),
+    },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to create workspace (${res.status})`);
+  }
+  return res.json();
+}
+
 export interface ApiTask {
   id: string;
   title: string;

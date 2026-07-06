@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { AppShell } from "@/components/app-shell";
 import { type ChatMessage, type Citation } from "@/lib/mock-data";
-import { useWorkspace } from "@/lib/workspace-context";
+import { useActiveWorkspace } from "@/lib/workspace-context";
 import {
   getChatHistory,
   sendChatMessage,
@@ -36,7 +36,7 @@ function toCitations(apiCitations: ApiCitation[] | null | undefined): Citation[]
 }
 
 function ChatPage() {
-  const { activeWorkspace } = useWorkspace();
+  const activeWorkspace = useActiveWorkspace();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
