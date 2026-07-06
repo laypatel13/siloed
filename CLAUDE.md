@@ -86,8 +86,16 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
 - `backend/routes/chat.py` — `POST /workspaces/{workspace_id}/chat` (send a
   message, get answer+citations), `GET` same path (history). Both behind
   `verify_workspace_access`. Wired into `main.py`.
-- `backend/tools/` — NOT YET BUILT. Tool schemas, registry, executor,
-  save_task, send_slack_summary.
+- `backend/tools/schemas.py` — pydantic args schemas per tool
+  (`SaveTaskArgs`, `SendSlackSummaryArgs`) -- the validation boundary
+  before any tool executes.
+- `backend/tools/registry.py` — `TOOL_REGISTRY` (name -> description +
+  args_schema), `get_tool_definitions()` (builds the Groq function-calling
+  `tools` array straight from each schema's JSON schema, so the model's
+  view can't drift from what's enforced), `validate_tool_call(name, args)`
+  (unknown name or failed validation -> `ToolValidationResult(ok=False,
+  error=...)`, never raises). Execution + `tool_calls` logging land in the
+  next two commits, one tool at a time.
 - `backend/routes/workspaces.py` — list/create/get workspace (built)
 - `backend/routes/documents.py` — upload/list documents (built)
 - `backend/routes/tool_logs.py` — NOT YET BUILT
@@ -105,9 +113,9 @@ Done so far, in order:
 5. `feature(retrieval): scoped vector search (workspace filter inside query)`
 6. `feature(chat): RAG prompt construction + citation formatting`
 7. `feature(chat): honest "I don't know" fallback + chat route`
+8. `feature(tools): pydantic schemas + tool registry`
 
 Remaining, in planned order:
-8. `feature(tools): pydantic schemas + tool registry`
 9. `feature(tools): save_task tool + execution + logging`
 10. `feature(tools): send_slack_summary tool`
 11. `feature(chat): wire tool-calling loop into chat (model proposes, app executes)`
