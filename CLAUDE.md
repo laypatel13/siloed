@@ -69,8 +69,15 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
   top_k)`: embeds the query, runs a cosine-similarity search with
   `where workspace_id = %s` inside the SQL itself, joins `documents` for
   filename. Used by chat/ once that's built.
-- `backend/chat/` — NOT YET BUILT. RAG prompt construction + citations +
-  "I don't know" fallback goes here.
+- `backend/chat/prompt.py` — `build_messages(query, chunks)`: builds the
+  system + user messages for the LLM. System prompt frames retrieved
+  chunks as untrusted data, requires inline [n] citations, forbids
+  outside knowledge. `build_context_block` numbers sources 1..n.
+- `backend/chat/citations.py` — `build_citations(answer_text, chunks)`:
+  parses [n] markers out of the model's answer and resolves them back to
+  filename/snippet/similarity for the frontend. Out-of-range markers are
+  dropped, not raised. NOT YET WIRED: no chat route or LLM call loop
+  yet -- that's next.
 - `backend/tools/` — NOT YET BUILT. Tool schemas, registry, executor,
   save_task, send_slack_summary.
 - `backend/routes/workspaces.py` — list/create/get workspace (built)
@@ -89,9 +96,9 @@ Done so far, in order:
 3. `feature(auth): supabase login + workspace model`
 4. `feature(ingestion): extractor, chunker, embedder, idempotent pipeline + upload route`
 5. `feature(retrieval): scoped vector search (workspace filter inside query)`
+6. `feature(chat): RAG prompt construction + citation formatting`
 
 Remaining, in planned order:
-6. `feature(chat): RAG prompt construction + citation formatting`
 7. `feature(chat): honest "I don't know" fallback + chat route`
 8. `feature(tools): pydantic schemas + tool registry`
 9. `feature(tools): save_task tool + execution + logging`
