@@ -89,16 +89,19 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
 - `backend/tools/schemas.py` — pydantic args schemas per tool
   (`SaveTaskArgs`, `SendSlackSummaryArgs`) -- the validation boundary
   before any tool executes.
-- `backend/tools/registry.py` — `TOOL_REGISTRY` (name -> description +
-  args_schema), `get_tool_definitions()` (builds the Groq function-calling
-  `tools` array straight from each schema's JSON schema, so the model's
-  view can't drift from what's enforced), `validate_tool_call(name, args)`
-  (unknown name or failed validation -> `ToolValidationResult(ok=False,
-  error=...)`, never raises). Execution + `tool_calls` logging land in the
-  next two commits, one tool at a time.
+- `backend/tools/executor.py` — `execute_tool_call(workspace_id, tool_name,
+  raw_arguments)`: the single choke point tool execution passes through --
+  validate (via registry) -> dispatch (`_DISPATCH` table) -> run -> always
+  log to `tool_calls`, success or error, never raises. Add a new tool by
+  adding a schema, a registry entry, a `run_*` function, and one line in
+  `_DISPATCH`.
+- `backend/tools/save_task.py` — `run_save_task(workspace_id, args)`: the
+  real side-effect tool required by the brief. Inserts into `tasks`.
+- `backend/routes/tool_logs.py` — `GET /workspaces/{workspace_id}/tasks`,
+  `GET /workspaces/{workspace_id}/tool-calls` (the dashboard's tool-call
+  log). Both behind `verify_workspace_access`. Wired into `main.py`.
 - `backend/routes/workspaces.py` — list/create/get workspace (built)
 - `backend/routes/documents.py` — upload/list documents (built)
-- `backend/routes/tool_logs.py` — NOT YET BUILT
 - `frontend/` — NOT YET BUILT (React/Vite skeleton only, no pages built)
 - `scripts/test_isolation.py` — NOT YET BUILT. Manual pre-submission
   isolation/injection check: puts a fact in workspace A, queries from
@@ -114,9 +117,9 @@ Done so far, in order:
 6. `feature(chat): RAG prompt construction + citation formatting`
 7. `feature(chat): honest "I don't know" fallback + chat route`
 8. `feature(tools): pydantic schemas + tool registry`
+9. `feature(tools): save_task tool + execution + logging`
 
 Remaining, in planned order:
-9. `feature(tools): save_task tool + execution + logging`
 10. `feature(tools): send_slack_summary tool`
 11. `feature(chat): wire tool-calling loop into chat (model proposes, app executes)`
 12. `fix(injection): harden system prompt against embedded instructions in chunks`
