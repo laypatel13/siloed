@@ -76,13 +76,20 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
 - `backend/chat/citations.py` — `build_citations(answer_text, chunks)`:
   parses [n] markers out of the model's answer and resolves them back to
   filename/snippet/similarity for the frontend. Out-of-range markers are
-  dropped, not raised. NOT YET WIRED: no chat route or LLM call loop
-  yet -- that's next.
+  dropped, not raised.
+- `backend/chat/llm.py` — thin Groq chat-completion wrapper (`complete`).
+- `backend/chat/answer.py` — `generate_answer(workspace_id, query)`: full
+  turn orchestration. Checks retrieval relevance (cosine similarity floor,
+  `MIN_RELEVANT_SIMILARITY = 0.5`) BEFORE calling the LLM -- no rows or a
+  weak top match short-circuits to a canned "I don't know" without a model
+  call. Persists both user + assistant messages to `chat_messages`.
+- `backend/routes/chat.py` — `POST /workspaces/{workspace_id}/chat` (send a
+  message, get answer+citations), `GET` same path (history). Both behind
+  `verify_workspace_access`. Wired into `main.py`.
 - `backend/tools/` — NOT YET BUILT. Tool schemas, registry, executor,
   save_task, send_slack_summary.
 - `backend/routes/workspaces.py` — list/create/get workspace (built)
 - `backend/routes/documents.py` — upload/list documents (built)
-- `backend/routes/chat.py` — NOT YET BUILT
 - `backend/routes/tool_logs.py` — NOT YET BUILT
 - `frontend/` — NOT YET BUILT (React/Vite skeleton only, no pages built)
 - `scripts/test_isolation.py` — NOT YET BUILT. Manual pre-submission
@@ -97,9 +104,9 @@ Done so far, in order:
 4. `feature(ingestion): extractor, chunker, embedder, idempotent pipeline + upload route`
 5. `feature(retrieval): scoped vector search (workspace filter inside query)`
 6. `feature(chat): RAG prompt construction + citation formatting`
+7. `feature(chat): honest "I don't know" fallback + chat route`
 
 Remaining, in planned order:
-7. `feature(chat): honest "I don't know" fallback + chat route`
 8. `feature(tools): pydantic schemas + tool registry`
 9. `feature(tools): save_task tool + execution + logging`
 10. `feature(tools): send_slack_summary tool`
