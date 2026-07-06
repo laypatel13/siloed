@@ -33,7 +33,15 @@ class Citation(BaseModel):
     similarity: float
 
 
+class ExecutedToolCall(BaseModel):
+    tool_name: str
+    status: str  # "success" | "error"
+    result: dict | None = None
+    error: str | None = None
+
+
 class ChatResponse(BaseModel):
     answer: str
     citations: list[Citation]
     grounded: bool
+    tool_calls: list[ExecutedToolCall] = []

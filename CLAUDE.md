@@ -78,11 +78,20 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
   filename/snippet/similarity for the frontend. Out-of-range markers are
   dropped, not raised.
 - `backend/chat/llm.py` — thin Groq chat-completion wrapper (`complete`).
+  Returns the raw assistant message object (not just text) so callers can
+  inspect `.tool_calls`; accepts an optional `tools` list to offer function
+  definitions to the model.
 - `backend/chat/answer.py` — `generate_answer(workspace_id, query)`: full
   turn orchestration. Checks retrieval relevance (cosine similarity floor,
-  `MIN_RELEVANT_SIMILARITY = 0.5`) BEFORE calling the LLM -- no rows or a
-  weak top match short-circuits to a canned "I don't know" without a model
-  call. Persists both user + assistant messages to `chat_messages`.
+  `MIN_RELEVANT_SIMILARITY = 0.5`) to gate the *text* answer -- no rows or a
+  weak top match forces the canned "I don't know" regardless of what the
+  model said. Tool calls are offered to the model every turn (relevance
+  gate doesn't apply to them, since "save this as a task" isn't a document
+  question): if the model proposes any, `tools/executor.execute_tool_call`
+  runs each one, results are fed back, and one follow-up completion (no
+  `tools` this round) produces the final summary text. Supports one round
+  of tool calls, not recursive multi-round proposals. Persists both user +
+  assistant messages to `chat_messages`.
 - `backend/routes/chat.py` — `POST /workspaces/{workspace_id}/chat` (send a
   message, get answer+citations), `GET` same path (history). Both behind
   `verify_workspace_access`. Wired into `main.py`.
@@ -125,9 +134,9 @@ Done so far, in order:
 8. `feature(tools): pydantic schemas + tool registry`
 9. `feature(tools): save_task tool + execution + logging`
 10. `feature(tools): send_slack_summary tool`
+11. `feature(chat): wire tool-calling loop into chat (model proposes, app executes)`
 
 Remaining, in planned order:
-11. `feature(chat): wire tool-calling loop into chat (model proposes, app executes)`
 12. `fix(injection): harden system prompt against embedded instructions in chunks`
 13. `feature(frontend): supabase-js login page`
 14. `feature(frontend): workspace switcher`
