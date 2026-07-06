@@ -17,6 +17,7 @@ from uuid import UUID
 from db.client import get_connection
 from tools.registry import validate_tool_call
 from tools.save_task import run_save_task
+from tools.send_slack_summary import run_send_slack_summary
 
 
 @dataclass
@@ -31,7 +32,7 @@ class ToolExecutionResult:
 # tools/registry.py's TOOL_REGISTRY, a run_* function, and one line here.
 _DISPATCH = {
     "save_task": run_save_task,
-    # "send_slack_summary": run_send_slack_summary,  # added in a later commit
+    "send_slack_summary": run_send_slack_summary,
 }
 
 

@@ -97,6 +97,12 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
   `_DISPATCH`.
 - `backend/tools/save_task.py` — `run_save_task(workspace_id, args)`: the
   real side-effect tool required by the brief. Inserts into `tasks`.
+- `backend/tools/send_slack_summary.py` — `run_send_slack_summary(workspace_id,
+  args)`: posts `args.summary` to Slack via `SLACK_WEBHOOK_URL` (single
+  shared webhook read from config.py, not per-workspace). Raises if the
+  webhook isn't configured or the POST fails; executor.py's try/except
+  around the handler turns that into a logged `status="error"` row instead
+  of a crash. Wired into `_DISPATCH` in tools/executor.py.
 - `backend/routes/tool_logs.py` — `GET /workspaces/{workspace_id}/tasks`,
   `GET /workspaces/{workspace_id}/tool-calls` (the dashboard's tool-call
   log). Both behind `verify_workspace_access`. Wired into `main.py`.
@@ -118,9 +124,9 @@ Done so far, in order:
 7. `feature(chat): honest "I don't know" fallback + chat route`
 8. `feature(tools): pydantic schemas + tool registry`
 9. `feature(tools): save_task tool + execution + logging`
+10. `feature(tools): send_slack_summary tool`
 
 Remaining, in planned order:
-10. `feature(tools): send_slack_summary tool`
 11. `feature(chat): wire tool-calling loop into chat (model proposes, app executes)`
 12. `fix(injection): harden system prompt against embedded instructions in chunks`
 13. `feature(frontend): supabase-js login page`
