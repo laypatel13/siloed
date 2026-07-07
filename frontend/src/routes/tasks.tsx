@@ -12,6 +12,14 @@ export const Route = createFileRoute("/tasks")({
 });
 
 function TasksPage() {
+  return (
+    <AppShell>
+      <TasksPageContent />
+    </AppShell>
+  );
+}
+
+function TasksPageContent() {
   const activeWorkspace = useActiveWorkspace();
   const [tasks, setTasks] = useState<ApiTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,7 +44,6 @@ function TasksPage() {
   }, [refresh]);
 
   return (
-    <AppShell>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1
@@ -101,6 +108,5 @@ function TasksPage() {
             ))}
         </div>
       </div>
-    </AppShell>
   );
 }
