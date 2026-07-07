@@ -52,7 +52,7 @@ def _save_message(workspace_id: UUID, role: str, content: str, citations: list[d
             cur.execute(
                 "insert into chat_messages (workspace_id, role, content, citations) "
                 "values (%s, %s, %s, %s)",
-                (str(workspace_id), role, content, json.dumps(citations) if citations else None),
+                (str(workspace_id), role, content, json.dumps(citations, default=str) if citations else None),
             )
         conn.commit()
 
