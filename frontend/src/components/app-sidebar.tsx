@@ -9,6 +9,7 @@ import {
   LogOut,
   ChevronDown,
   Check,
+  Plus,
 } from "lucide-react";
 import {
   Sidebar,
@@ -26,9 +27,20 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const navItems = [
   { title: "Chat", url: "/chat", icon: MessageSquare },
@@ -43,10 +55,14 @@ export function AppSidebar() {
   const currentPath = useRouterState({
     select: (s) => s.location.pathname,
   });
-  const { workspaces, activeWorkspace, setActiveWorkspaceId } =
+  const { workspaces, activeWorkspace, setActiveWorkspaceId, createWorkspace } =
     useWorkspace();
   const navigate = useNavigate();
   const [email, setEmail] = useState<string | null>(null);
+  const [newWorkspaceOpen, setNewWorkspaceOpen] = useState(false);
+  const [newWorkspaceName, setNewWorkspaceName] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   // AppShell's WorkspaceGate only renders children once a workspace is
   // active, so this only guards against a render race, not real usage.
@@ -59,6 +75,24 @@ export function AppSidebar() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/login" });
+  };
+
+  const handleCreateWorkspace = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newWorkspaceName.trim()) return;
+    setIsCreating(true);
+    setCreateError(null);
+    try {
+      await createWorkspace(newWorkspaceName.trim());
+      setNewWorkspaceName("");
+      setNewWorkspaceOpen(false);
+    } catch (err) {
+      setCreateError(
+        err instanceof Error ? err.message : "Failed to create workspace"
+      );
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   if (!activeWorkspace) return null;
@@ -113,9 +147,55 @@ export function AppSidebar() {
                   )}
                 </DropdownMenuItem>
               ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onSelect={() => {
+                  setCreateError(null);
+                  setNewWorkspaceName("");
+                  setNewWorkspaceOpen(true);
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                <span>New workspace</span>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
+        <Dialog open={newWorkspaceOpen} onOpenChange={setNewWorkspaceOpen}>
+          <DialogContent>
+            <form onSubmit={handleCreateWorkspace}>
+              <DialogHeader>
+                <DialogTitle>Create a new workspace</DialogTitle>
+                <DialogDescription>
+                  Workspaces keep documents, chats, and tasks isolated from
+                  each other.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <Input
+                  autoFocus
+                  value={newWorkspaceName}
+                  onChange={(e) => setNewWorkspaceName(e.target.value)}
+                  placeholder="e.g. Marketing Team"
+                  required
+                />
+                {createError && (
+                  <p className="mt-2 text-sm text-destructive">
+                    {createError}
+                  </p>
+                )}
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={isCreating} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  {isCreating ? "Creating..." : "Create workspace"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <SidebarMenu>
           {navItems.map((item) => (
