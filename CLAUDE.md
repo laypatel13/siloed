@@ -9,7 +9,8 @@ what's built, what's left, and the hard rules that must never be violated.
 Abstrabit take-home assessment (72-hour window). FastAPI backend, React
 (TanStack Start) frontend, Supabase Postgres + pgvector as a single shared
 vector store, Groq for chat + tool calling, Gemini for embeddings. Deployed:
-backend on Render, frontend on Vercel.
+backend on Render (https://siloed.onrender.com), frontend on Vercel
+(https://siloed-eta.vercel.app/).
 
 Assessment brief: multi-tenant RAG + tool calling, graded primarily on
 workspace isolation (fact in workspace A must never leak when queried from
@@ -189,6 +190,14 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
 - `scripts/test_isolation.py` — puts a fact in workspace A, queries from
   workspace B, asserts no leakage. Run this before every milestone and
   again against the deployed instance before submitting (see Roadmap).
+- `github/sample-docs/` — five ready-to-upload `.txt` fixtures (isolation
+  fact, an unrelated doc for workspace B, and three injection-attempt
+  documents) with their own README indexing which file exercises which
+  row of TEST.md. Exists so a reviewer never has to write their own test
+  documents by hand.
+- `github/assets/demo.gif` — README hero GIF, built from real screenshots
+  in `github/assets/test-evidence/` (title card → Workspace A answer →
+  Workspace B refusal → tool call → outro), not staged footage.
 
 ## Roadmap
 Living checklist, not a fixed commit list — commit history itself lives in
@@ -232,9 +241,19 @@ from reality.
 ### In progress / next
 - [x] Deploy backend to Render
 - [x] Deploy frontend to Vercel
-- [ ] Seed two demo workspaces with sample docs + a throwaway login for
-      reviewers; put a distinctive fact in one workspace specifically to
-      make the isolation test easy for a reviewer to try
+- [x] README: live-demo badges (Vercel/Render/reviewer-guide), hero GIF
+      built from real test-evidence screenshots, no more placeholder
+      "not deployed yet" text
+- [x] `github/sample-docs/` — real fixture docs (isolation fact, unrelated
+      workspace-B doc, three injection attempts) + index README, wired
+      into TEST.md's reviewer quick-start and § 3 injection rows
+- [ ] Seed two demo workspaces on the *live* app with sample docs +
+      throwaway login for reviewers; put a distinctive fact in one
+      workspace specifically to make the isolation test easy to try.
+      **This has to happen in a real browser against the deployed
+      Supabase project — not something an AI session without network/
+      browser access to the live app can do. Blocks the two remaining
+      TODOs in TEST.md (login, deployed-pass date).**
 - [ ] Optional: reject invented placeholder titles (e.g. "Untitled Task")
       in `save_task`, not just empty ones, so the model can't quietly
       satisfy "no title" by making one up
@@ -243,6 +262,9 @@ from reality.
       returned by `search_chunks`
 - [ ] Final pass: confirm no secrets in repo/client code/logs, confirm
       `.env.example` is complete and placeholder-only
+- [ ] Record the demo video for submission; confirm `17-slack-webhook-
+      request-pending.png` (§ 4.5) — flip to a real success screenshot if
+      the webhook request has since been approved
 
 ## Testing before submission
 Always run `scripts/test_isolation.py` before considering a milestone done:

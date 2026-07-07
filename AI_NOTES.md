@@ -4,15 +4,25 @@
 - **Claude** (via chat, with computer/file access) for the bulk of backend
   logic (ingestion pipeline, retrieval, prompt construction, tool-calling
   loop), debugging a production issue against live logs/screenshots, and
-  for this documentation pass.
+  the full documentation pass (README, TEST.md, this file, CLAUDE.md,
+  sample-doc fixtures, the README demo GIF).
+- **ChatGPT** for early brainstorming and organizing — sketching the
+  overall approach before writing code (how to keep the workspace filter
+  auditable, what the tool-calling loop should look like at a high level,
+  how to structure the docs so a reviewer isn't hunting across five files
+  for the same fact) and for organizing the assessment requirements into
+  a checklist before any of it became code or CLAUDE.md's roadmap. It
+  didn't touch the codebase directly — Claude did the implementation and
+  the debugging, working from that plan.
 - **Lovable** for the initial frontend visual scaffold (pages, layout,
   shadcn/ui components) — built first against mock data/timeouts, then
   wired to the real backend one route at a time.
-- Rough split: AI wrote the great majority of the code. My own work was
-  mostly architectural decisions up front, reviewing/steering generated
-  code, running the app and reporting back real behavior (screenshots,
-  server logs) when something didn't work, and making the final calls on
-  the three decisions below.
+- Rough split: ChatGPT helped me think and organize before writing
+  anything; Claude and Lovable wrote the great majority of the actual
+  code. My own work was the architectural decisions up front, reviewing
+  and steering generated code, running the app and reporting back real
+  behavior (screenshots, server logs) when something didn't work, and
+  making the final calls on the three decisions below.
 
 ## Key decisions I made myself
 
@@ -101,3 +111,23 @@ APIError` block so this class of failure is never silent again.
   which was enough for two tools but wouldn't scale to more.
 - Hybrid (keyword + vector) retrieval, since pure cosine similarity can
   miss exact-term matches that a keyword search would catch.
+
+## Note on the documentation pass
+A meaningful chunk of the final effort here wasn't new backend code, it was
+making the docs actually match what's shipped: the README claimed "not
+deployed yet" after it already was, the reviewer-instructions section was
+still raw `TODO`s, two evidence screenshots were linked under filenames
+that didn't exist on disk (one had a stray double extension, one was
+mislabeled `-422` when the code actually returns `404` for an unknown
+tool), and one screenshot (`17-slack-*.png`) got provisionally checked off
+as a Slack success before I'd actually confirmed what it showed — it turned
+out to be a webhook request still pending approval, not a delivered
+message, so that row stayed honestly marked ⏳ rather than ✅. All of that
+is now fixed: real screenshots stitched into an actual README GIF, a
+`github/sample-docs/` folder with ready-to-upload fixture files so a
+reviewer never has to hand-write a test document, and TEST.md's reviewer
+quick-start pointing at exact files and exact questions instead of
+placeholders. The two things that are genuinely still open — a throwaway
+login and a deployed-instance test-pass date — need a real browser against
+the live Supabase project, which isn't something achievable from a chat
+session with no network access to the deployed app.

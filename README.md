@@ -14,6 +14,12 @@
 
 <br/>
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-siloed--eta.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://siloed-eta.vercel.app/)
+[![Backend](https://img.shields.io/badge/Backend_API-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://siloed.onrender.com)
+[![Reviewer Guide](https://img.shields.io/badge/Reviewer_Guide-TEST.md-blue?style=for-the-badge&logo=readthedocs&logoColor=white)](./TEST.md#reviewer-quick-start)
+
+<br/>
+
 A multi-tenant RAG assistant. Users sign in, manage multiple workspaces,
 upload documents into a workspace, chat with an assistant grounded strictly
 in that workspace's content, and trigger tool calls (save a task, send a
@@ -22,9 +28,7 @@ enforced per-row, per-query, never by giving each workspace its own table.
 
 <br/>
 
-🌐 **Live demo:** [siloed-eta.vercel.app](https://siloed-eta.vercel.app/) · backend on [Render](https://siloed.onrender.com) ([`/health`](https://siloed.onrender.com/health))
 📖 **API docs (local):** `http://localhost:8000/docs` once the backend is running.
-🧑‍💻 **Reviewer login + sample workspaces:** see [`TEST.md`](./TEST.md#reviewer-quick-start)
 
 <br/>
 
