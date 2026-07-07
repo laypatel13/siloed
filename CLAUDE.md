@@ -230,8 +230,8 @@ from reality.
       the tool-schema/Groq issue above — what to improve with more time)
 
 ### In progress / next
-- [ ] Deploy backend to Render
-- [ ] Deploy frontend to Vercel
+- [x] Deploy backend to Render
+- [x] Deploy frontend to Vercel
 - [ ] Seed two demo workspaces with sample docs + a throwaway login for
       reviewers; put a distinctive fact in one workspace specifically to
       make the isolation test easy for a reviewer to try
