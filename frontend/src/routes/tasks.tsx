@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { CheckSquare, Calendar, Loader2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { AppShell } from "@/components/app-shell";
-import { useActiveWorkspace } from "@/lib/workspace-context";
+import { AppShell } from "@/components/layout/app-shell";
+import { useActiveWorkspace } from "@/contexts/workspace-context";
 import { listTasks, type ApiTask } from "@/lib/api";
 
 export const Route = createFileRoute("/tasks")({

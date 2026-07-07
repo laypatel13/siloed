@@ -11,8 +11,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { AppShell } from "@/components/app-shell";
-import { useActiveWorkspace } from "@/lib/workspace-context";
+import { AppShell } from "@/components/layout/app-shell";
+import { useActiveWorkspace } from "@/contexts/workspace-context";
 import { listToolCalls, type ApiToolCall } from "@/lib/api";
 
 export const Route = createFileRoute("/tool-logs")({

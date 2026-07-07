@@ -21,7 +21,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useWorkspace } from "@/lib/workspace-context";
+import { useWorkspace } from "@/contexts/workspace-context";
 import { supabase } from "@/lib/supabase";
 import {
   DropdownMenu,

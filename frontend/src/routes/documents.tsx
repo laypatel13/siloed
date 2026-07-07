@@ -10,9 +10,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AppShell } from "@/components/app-shell";
-import { type Document } from "@/lib/mock-data";
-import { useActiveWorkspace } from "@/lib/workspace-context";
+import { AppShell } from "@/components/layout/app-shell";
+import { type Document } from "@/types";
+import { useActiveWorkspace } from "@/contexts/workspace-context";
 import { listDocuments, uploadDocument } from "@/lib/api";
 
 export const Route = createFileRoute("/documents")({
