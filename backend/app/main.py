@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 
-from app.api.routes import chat, documents, tasks, tool_calls, workspaces
+from app.api.routes import chat, documents, tasks, tool_calls, tools, workspaces
 
 app = FastAPI(title="siloed")
 
@@ -26,3 +26,4 @@ app.include_router(documents.router)
 app.include_router(chat.router)
 app.include_router(tasks.router)
 app.include_router(tool_calls.router)
+app.include_router(tools.router)

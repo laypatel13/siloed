@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as ToolLogsRouteImport } from './routes/tool-logs'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as SignupRouteImport } from './routes/signup'
@@ -17,6 +18,11 @@ import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as IndexRouteImport } from './routes/index'
 
+const ToolsRoute = ToolsRouteImport.update({
+  id: '/tools',
+  path: '/tools',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ToolLogsRoute = ToolLogsRouteImport.update({
   id: '/tool-logs',
   path: '/tool-logs',
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/tasks': typeof TasksRoute
   '/tool-logs': typeof ToolLogsRoute
+  '/tools': typeof ToolsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/tasks': typeof TasksRoute
   '/tool-logs': typeof ToolLogsRoute
+  '/tools': typeof ToolsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/tasks': typeof TasksRoute
   '/tool-logs': typeof ToolLogsRoute
+  '/tools': typeof ToolsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/tasks'
     | '/tool-logs'
+    | '/tools'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/tasks'
     | '/tool-logs'
+    | '/tools'
   id:
     | '__root__'
     | '/'
@@ -109,6 +120,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/tasks'
     | '/tool-logs'
+    | '/tools'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -119,10 +131,18 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   TasksRoute: typeof TasksRoute
   ToolLogsRoute: typeof ToolLogsRoute
+  ToolsRoute: typeof ToolsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tools': {
+      id: '/tools'
+      path: '/tools'
+      fullPath: '/tools'
+      preLoaderRoute: typeof ToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tool-logs': {
       id: '/tool-logs'
       path: '/tool-logs'
@@ -183,6 +203,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   TasksRoute: TasksRoute,
   ToolLogsRoute: ToolLogsRoute,
+  ToolsRoute: ToolsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

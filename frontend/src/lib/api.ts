@@ -141,6 +141,67 @@ export async function listToolCalls(
   return res.json();
 }
 
+export interface ApiToolField {
+  name: string;
+  type: string;
+  required: boolean;
+}
+
+export interface ApiToolDefinition {
+  name: string;
+  description: string;
+  fields: ApiToolField[];
+}
+
+export async function listTools(
+  workspaceId: string
+): Promise<ApiToolDefinition[]> {
+  const res = await fetch(`${API_URL}/workspaces/${workspaceId}/tools`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to load tools (${res.status})`);
+  }
+  return res.json();
+}
+
+export interface InvokeToolResult {
+  status: "success";
+  result: Record<string, unknown>;
+}
+
+// Manual invoke goes through the exact same validate -> execute -> log
+// path a model-triggered call does (see backend/app/api/routes/tools.py),
+// so a rejected call here (bad/missing arguments) is a normal 422 with a
+// readable message, not a crash -- surfaced to the caller instead of
+// thrown as a generic HTTP error string.
+export async function invokeTool(
+  workspaceId: string,
+  toolName: string,
+  args: Record<string, unknown>
+): Promise<InvokeToolResult> {
+  const res = await fetch(
+    `${API_URL}/workspaces/${workspaceId}/tools/${toolName}/invoke`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(await authHeaders()),
+      },
+      body: JSON.stringify(args),
+    }
+  );
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    const detail =
+      body && typeof body.detail === "string"
+        ? body.detail
+        : `Failed to run tool (${res.status})`;
+    throw new Error(detail);
+  }
+  return body;
+}
+
 export interface ApiDocument {
   id: string;
   filename: string;

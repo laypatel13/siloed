@@ -5,6 +5,7 @@ import {
   FileText,
   CheckSquare,
   Wrench,
+  Play,
   Layers,
   LogOut,
   ChevronDown,
@@ -46,6 +47,7 @@ const navItems = [
   { title: "Chat", url: "/chat", icon: MessageSquare },
   { title: "Documents", url: "/documents", icon: FileText },
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
+  { title: "Tools", url: "/tools", icon: Play },
   { title: "Tool Logs", url: "/tool-logs", icon: Wrench },
 ];
 
