@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ToolLogsRouteImport } from './routes/tool-logs'
 import { Route as TasksRouteImport } from './routes/tasks'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as ChatRouteImport } from './routes/chat'
@@ -24,6 +25,11 @@ const ToolLogsRoute = ToolLogsRouteImport.update({
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/chat': typeof ChatRoute
   '/documents': typeof DocumentsRoute
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/tasks': typeof TasksRoute
   '/tool-logs': typeof ToolLogsRoute
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/chat': typeof ChatRoute
   '/documents': typeof DocumentsRoute
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/tasks': typeof TasksRoute
   '/tool-logs': typeof ToolLogsRoute
 }
@@ -69,20 +77,36 @@ export interface FileRoutesById {
   '/chat': typeof ChatRoute
   '/documents': typeof DocumentsRoute
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/tasks': typeof TasksRoute
   '/tool-logs': typeof ToolLogsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/chat' | '/documents' | '/login' | '/tasks' | '/tool-logs'
+  fullPaths:
+    | '/'
+    | '/chat'
+    | '/documents'
+    | '/login'
+    | '/signup'
+    | '/tasks'
+    | '/tool-logs'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/chat' | '/documents' | '/login' | '/tasks' | '/tool-logs'
+  to:
+    | '/'
+    | '/chat'
+    | '/documents'
+    | '/login'
+    | '/signup'
+    | '/tasks'
+    | '/tool-logs'
   id:
     | '__root__'
     | '/'
     | '/chat'
     | '/documents'
     | '/login'
+    | '/signup'
     | '/tasks'
     | '/tool-logs'
   fileRoutesById: FileRoutesById
@@ -92,6 +116,7 @@ export interface RootRouteChildren {
   ChatRoute: typeof ChatRoute
   DocumentsRoute: typeof DocumentsRoute
   LoginRoute: typeof LoginRoute
+  SignupRoute: typeof SignupRoute
   TasksRoute: typeof TasksRoute
   ToolLogsRoute: typeof ToolLogsRoute
 }
@@ -110,6 +135,13 @@ declare module '@tanstack/react-router' {
       path: '/tasks'
       fullPath: '/tasks'
       preLoaderRoute: typeof TasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -148,6 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChatRoute: ChatRoute,
   DocumentsRoute: DocumentsRoute,
   LoginRoute: LoginRoute,
+  SignupRoute: SignupRoute,
   TasksRoute: TasksRoute,
   ToolLogsRoute: ToolLogsRoute,
 }
