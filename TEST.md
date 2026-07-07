@@ -28,8 +28,8 @@ inline.
 
 | # | Test | Steps | Result | Screenshot |
 |---|------|-------|--------|------------|
-| 2.1 | Grounded answer with citation | Ask a question the active workspace's docs actually answer. | ☐ Pass ☐ Fail — answer cites `[n]`, matches source | `07-grounded-answer.png` |
-| 2.2 | Honest "I don't know" | Ask something unrelated to any uploaded doc in the active workspace. | ☐ Pass ☐ Fail — plain "I don't know", no invented answer | `08-honest-refusal.png` |
+| 2.1 | Grounded answer with citation | Ask a question the active workspace's docs actually answer. | ☑ Pass ☐ Fail — answer cites `[n]`, matches source | [`07-grounded-answer-honest-refusal.png`](./.github/assets/test-evidence/07-grounded-answer-honest-refusal.png) — Workspace AA answers the Denver WiFi-password question with a `[1]` citation |
+| 2.2 | Honest "I don't know" | Ask something unrelated to any uploaded doc in the active workspace. | ☑ Pass ☐ Fail — plain "I don't know", no invented answer | [`07-grounded-answer-honest-refusal.png`](./.github/assets/test-evidence/07-grounded-answer-honest-refusal.png) — same chat, "How is weather today?" is correctly refused as not covered by the source |
 | 2.3 | Weak-match refusal | Ask something tangentially related but not actually answered by the docs (tests the similarity floor, not just "zero rows"). | ☐ Pass ☐ Fail | `09-weak-match-refusal.png` |
 
 ## 3. Prompt-injection resistance
