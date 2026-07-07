@@ -220,16 +220,16 @@ from reality.
 - [x] Manual tool invocation: `GET/POST .../tools[/invoke]` + a "Tools" page
       to call a tool directly for debugging/demoing, outside the chat loop
 - [x] `scripts/test_isolation.py` written (A/B leak + injection check)
-
-### In progress / next
-- [ ] Run `test_isolation.py` (and a manual prompt-injection doc test)
+- [x] Run `test_isolation.py` (and a manual prompt-injection doc test)
       against the **deployed** instance, not just local — don't trust the
       local pass alone
-- [ ] Fix README: broken schema path (`backend/db/schema.sql` ->
+- [x] Fix README: broken schema path (`backend/db/schema.sql` ->
       `backend/migrations/schema.sql`), unfinished test-account/sample-data
       placeholder
-- [ ] Write AI_NOTES.md (tools/models used, key decisions, hardest bug —
+- [x] Write AI_NOTES.md (tools/models used, key decisions, hardest bug —
       the tool-schema/Groq issue above — what to improve with more time)
+
+### In progress / next
 - [ ] Deploy backend to Render
 - [ ] Deploy frontend to Vercel
 - [ ] Seed two demo workspaces with sample docs + a throwaway login for

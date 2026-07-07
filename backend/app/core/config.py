@@ -16,7 +16,12 @@ class Settings(BaseSettings):
     slack_webhook_url: str = ""
 
     environment: str = "development"
+    # Comma-separated list, e.g. "https://siloed.vercel.app,http://localhost:5173"
     frontend_url: str = "http://localhost:5173"
+
+    @property
+    def frontend_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.frontend_url.split(",") if origin.strip()]
 
     class Config:
         env_file = ".env"
