@@ -1,133 +1,153 @@
 # AI_NOTES.md
 
+> How AI tools were used to build **siloed**, the calls I made myself, and
+> the hardest bug of the 72 hours — told the way it actually happened.
+
+## TL;DR
+
+- **Claude** wrote the majority of backend code and did the debugging;
+  **ChatGPT** helped think and organize before any code existed;
+  **Lovable** scaffolded the frontend UI against mock data first.
+- I made three architectural calls myself (raw SQL for the isolation
+  query, a similarity floor for honest refusals, where tool-content
+  validation lives) — see [§ Key decisions](#key-decisions-i-made-myself).
+- The hardest bug looked like a frontend glitch, was actually a stale zip
+  vs. live server mismatch, and underneath *that* was a silently-swallowed
+  Groq `APIError` caused by baking a business rule into a JSON schema.
+  Full story below.
+
+---
+
 ## Tools and models used
-- **Claude** (via chat, with computer/file access) for the bulk of backend
-  logic (ingestion pipeline, retrieval, prompt construction, tool-calling
-  loop), debugging a production issue against live logs/screenshots, and
-  the full documentation pass (README, TEST.md, this file, CLAUDE.md,
-  sample-doc fixtures, the README demo GIF).
-- **ChatGPT** for early brainstorming and organizing — sketching the
-  overall approach before writing code (how to keep the workspace filter
-  auditable, what the tool-calling loop should look like at a high level,
-  how to structure the docs so a reviewer isn't hunting across five files
-  for the same fact) and for organizing the assessment requirements into
-  a checklist before any of it became code or CLAUDE.md's roadmap. It
-  didn't touch the codebase directly — Claude did the implementation and
-  the debugging, working from that plan.
-- **Lovable** for the initial frontend visual scaffold (pages, layout,
-  shadcn/ui components) — built first against mock data/timeouts, then
-  wired to the real backend one route at a time.
-- Rough split: ChatGPT helped me think and organize before writing
-  anything; Claude and Lovable wrote the great majority of the actual
-  code. My own work was the architectural decisions up front, reviewing
-  and steering generated code, running the app and reporting back real
-  behavior (screenshots, server logs) when something didn't work, and
-  making the final calls on the three decisions below.
+
+| Tool | Role |
+|---|---|
+| **Claude** (chat, with computer/file access) | Bulk of backend logic — ingestion pipeline, retrieval, prompt construction, tool-calling loop. Debugged the hardest bug against live logs/screenshots. Full documentation pass (README, TEST.md, this file, CLAUDE.md, sample-doc fixtures, README demo GIF). |
+| **ChatGPT** | Early brainstorming and organizing, before any code existed — how to keep the workspace filter auditable, what the tool-calling loop should look like at a high level, how to structure docs so a reviewer isn't hunting across five files for one fact. Turned the assessment brief into a checklist that became CLAUDE.md's roadmap. Never touched the codebase directly. |
+| **Lovable** | Initial frontend visual scaffold — pages, layout, shadcn/ui components — built first against mock data/timeouts, then wired to the real backend one route at a time. |
+
+**The split, honestly:** ChatGPT helped me think before writing anything;
+Claude and Lovable wrote the great majority of the actual code. My own
+work was the architectural decisions up front, reviewing and steering
+generated code, running the app and reporting back real behavior
+(screenshots, server logs) when something broke, and making the three
+calls below.
+
+---
 
 ## Key decisions I made myself
 
 **1. Raw SQL over an ORM for the isolation-critical query.**
-`retrieval/vector_search.py` uses hand-written SQL with `where workspace_id
-= %s` inline, rather than an ORM's query builder. The whole assignment is
-graded on whether the workspace filter is *inside* the query rather than
-applied after fetching rows — I wanted that filter to be visible and
-auditable by inspection, not buried inside an ORM abstraction where it's
-one accidental refactor away from becoming a Python-side filter instead of
-a SQL one.
+`retrieval/vector_search.py` hand-writes `where workspace_id = %s` inline
+instead of going through an ORM's query builder. The whole assignment is
+graded on whether that filter sits *inside* the query rather than gets
+applied after fetching rows — I wanted it visible and auditable by
+inspection, not buried where one careless refactor turns it into a
+Python-side filter instead of a SQL one.
 
-**2. Cosine-similarity floor gates the text answer, not just row count.**
-pgvector's `ORDER BY ... LIMIT k` always returns *something*, even if
-nothing in the workspace is actually relevant. I added
-`MIN_RELEVANT_SIMILARITY = 0.5` as an explicit floor on the top match, so
-"no rows" and "rows, but none of them are actually relevant" both force the
-honest "I don't know" — this only occurred to me after testing an
-unrelated question against a workspace and getting a confidently-answered
-non-answer back the first time.
+**2. A cosine-similarity floor gates the text answer, not just row count.**
+`ORDER BY ... LIMIT k` always returns *something*, even when nothing in
+the workspace is actually relevant. `MIN_RELEVANT_SIMILARITY = 0.5` forces
+the honest "I don't know" whether there are zero rows or just weak ones —
+this only became obvious after an unrelated question got a confidently
+wrong answer the first time I tried it.
 
-**3. Tool content-validation lives downstream of the schema handed to the
-model, not inside it.**
-Originally `title`/`summary` were `required` + `min_length=1` directly in
-the pydantic schema — which is also the exact JSON schema sent to Groq's
-tool-calling API. That's the source of the hardest bug below, and fixing
-it meant deciding that "must be non-empty" is a business rule to enforce
-ourselves after the model responds, not a constraint to bake into what the
-model has to satisfy while generating.
+**3. Tool content-validation lives downstream of the model's schema, not
+inside it.** `title`/`summary` used to be `required` + `min_length=1`
+directly in the pydantic model — which is also the literal JSON schema
+sent to Groq's tool-calling API. That's the root of the bug below. Fixing
+it meant deciding "must be non-empty" is a business rule to enforce after
+the model responds, not a constraint baked into what it has to satisfy
+while generating.
 
-## The hardest bug (and where the AI led me wrong)
+---
 
-I asked the assistant in chat to **"save a task with no title and no
-description"** — deliberately adversarial, since `title` is required. The
-UI returned a generic *"Something went wrong generating a response"* over
-and over, with no error in the FastAPI console (just clean `200 OK`s in the
-uvicorn log). It looked, at first glance, like a frontend bug — the same
-user message appearing to resend itself with no visible reply.
+## The hardest bug
 
-What the AI initially assumed (based only on the code I'd uploaded) was
-wrong in a subtle way: it started reasoning about the zipped repo snapshot
-I'd provided, but that snapshot's `answer.py` had **no error handling at
-all** around the Groq call — meaning if that were the code actually
-running, an unhandled exception would have produced a `500`, not the clean
-`200` the logs showed. The AI caught this itself mid-investigation by
-cross-checking the zip against the live server logs, and flagged that the
-zip didn't match what was actually deployed — a version mismatch I hadn't
-noticed I'd introduced by not re-zipping after later edits.
+**The ask:** *"save a task with no title and no description"* —
+deliberately adversarial, since `title` is required.
 
-Once we were reasoning from the actual running code, the real cause became
-clear: `SaveTaskArgs.title` was `Field(..., min_length=1)`, and that exact
-constraint was being serialized straight into the JSON schema handed to
-Groq's tool-calling API via `model_json_schema()`. Asking for a task with
-"no title" is a request the model literally cannot satisfy against that
-schema — and the resulting tool-call generation was failing at the level
-of the **Groq API call itself** (an `APIError`), not at our own pydantic
-validation layer, which never even got a chance to run. The `except
-APIError` block that caught this had no logging in it at all, which is why
-the failure was completely invisible server-side despite happening on
-every attempt.
+**What happened on screen:** the UI returned a generic *"Something went
+wrong generating a response"*, over and over. The FastAPI console showed
+nothing but clean `200 OK`s. It looked like a frontend bug — the same
+message appearing to resend with no visible reply.
 
-**How I noticed:** by actually running the app and sending the screenshots
-of the broken chat UI plus the raw uvicorn terminal log, rather than just
-describing the symptom. The clean `200 OK`s with no visible reply were the
-key detail — they ruled out a crash and pointed at "caught, but silently."
+**Step 1 — the false lead.**
+Working from the zip I'd uploaded, the AI started reasoning about code
+that had **no error handling at all** around the Groq call. If that code
+were actually running, an unhandled exception should have produced a
+`500`, not a clean `200`. The AI caught the contradiction itself —
+cross-checked the zip against the live server logs, and flagged that the
+zip didn't match what was actually deployed. I'd edited the code after
+last zipping it and hadn't noticed.
 
-**How we fixed it:** made the tool schemas permissive at the JSON-schema
-level (no `required`/`min_length`), so a syntactically valid tool call is
-always possible; moved the actual "must be non-empty" rule into our own
-`validate_tool_call`, where a rejection is a normal, logged
-`ToolValidationResult(ok=False, ...)` instead of a failed provider call;
-and added real logging (`status_code`, message, body) to every `except
-APIError` block so this class of failure is never silent again.
+**Step 2 — reasoning from the real, running code.**
+`SaveTaskArgs.title` was `Field(..., min_length=1)`, and that exact
+constraint was serialized straight into the JSON schema handed to Groq's
+tool-calling API via `model_json_schema()`. A task with "no title" is a
+request the model *literally cannot satisfy* against that schema — so
+generation was failing at the **Groq API call itself** (an `APIError`),
+never reaching our own pydantic validation. The `except APIError` block
+that caught it had no logging at all — which is why every failed attempt
+was completely invisible server-side.
+
+**How I actually noticed:** by running the app and handing over
+screenshots of the broken chat UI plus the raw uvicorn log, instead of
+just describing the symptom. The clean `200 OK`s with no visible reply
+were the tell — they ruled out a crash and pointed at "caught, but
+silent."
+
+**The fix, three parts:**
+- Tool schemas made permissive at the JSON-schema level (no
+  `required`/`min_length`) — a syntactically valid tool call is always
+  possible.
+- The real "must be non-empty" rule moved into `validate_tool_call`,
+  where a rejection is a normal, logged `ToolValidationResult(ok=False,
+  ...)`, not a failed provider call.
+- Real logging (`status_code`, message, body) added to every `except
+  APIError` block, so this class of failure can't go silent again.
+
+---
 
 ## What I'd improve with more time
-- Reject not just empty titles but obviously-invented placeholders (e.g.
-  the model saving `"Untitled Task"` when explicitly told "no title") —
-  currently a non-empty string of any kind passes, which means the model
-  can technically override an explicit user instruction rather than asking
-  for clarification.
-- A retrieval-debug view showing exactly which chunks/workspace an answer
-  drew from, for a cleaner way to *prove* isolation beyond the A/B test
+
+- **Reject invented placeholders, not just empty strings.** The model can
+  currently satisfy "no title" by saving `"Untitled Task"` — a non-empty
+  string of any kind passes today, which lets it quietly override an
+  explicit instruction instead of asking for clarification.
+- **A retrieval-debug view** — which chunks/workspace an answer actually
+  drew from — for a cleaner way to *prove* isolation beyond the A/B test
   script.
-- Multi-round tool use (model calls a tool, sees the result, decides to
-  call a second one) — current implementation supports one round per turn,
-  which was enough for two tools but wouldn't scale to more.
-- Hybrid (keyword + vector) retrieval, since pure cosine similarity can
-  miss exact-term matches that a keyword search would catch.
+- **Multi-round tool use.** Current implementation supports one round per
+  turn (call → result → final summary), which covered two tools fine but
+  wouldn't scale further.
+- **Hybrid retrieval** (keyword + vector) — pure cosine similarity can
+  miss exact-term matches a keyword search would catch.
+
+---
 
 ## Note on the documentation pass
-A meaningful chunk of the final effort here wasn't new backend code, it was
-making the docs actually match what's shipped: the README claimed "not
-deployed yet" after it already was, the reviewer-instructions section was
-still raw `TODO`s, two evidence screenshots were linked under filenames
-that didn't exist on disk (one had a stray double extension, one was
-mislabeled `-422` when the code actually returns `404` for an unknown
-tool), and one screenshot (`17-slack-*.png`) got provisionally checked off
-as a Slack success before I'd actually confirmed what it showed — it turned
-out to be a webhook request still pending approval, not a delivered
-message, so that row stayed honestly marked ⏳ rather than ✅. All of that
-is now fixed: real screenshots stitched into an actual README GIF, a
-`github/sample-docs/` folder with ready-to-upload fixture files so a
-reviewer never has to hand-write a test document, and TEST.md's reviewer
-quick-start pointing at exact files and exact questions instead of
-placeholders. The two things that are genuinely still open — a throwaway
-login and a deployed-instance test-pass date — need a real browser against
-the live Supabase project, which isn't something achievable from a chat
-session with no network access to the deployed app.
+
+A meaningful chunk of the final effort wasn't new backend code — it was
+making the docs match what's actually shipped. What was wrong, found
+during that pass:
+
+- README still said "not deployed yet" after it already was.
+- The reviewer-instructions section was still raw `TODO`s.
+- Two evidence screenshots were linked under filenames that didn't exist
+  on disk — one had a stray double extension, one was mislabeled `-422`
+  when the code actually returns `404` for an unknown tool.
+- `17-slack-*.png` had been provisionally checked off as a Slack success
+  before actually confirming what it showed — it turned out to be a
+  webhook request still pending approval, not a delivered message, so
+  that row stayed honestly marked ⏳ instead of ✅.
+
+All fixed: real screenshots stitched into an actual README GIF, a
+`.github/sample-docs/` folder with ready-to-upload fixtures so a reviewer
+never hand-writes a test document, and TEST.md's reviewer quick-start
+pointing at exact files and exact questions instead of placeholders.
+
+**Still genuinely open:** a throwaway login and a deployed-instance
+test-pass date — both need a real browser against the live Supabase
+project, which isn't something achievable from a chat session with no
+network access to the deployed app.

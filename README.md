@@ -32,7 +32,7 @@ enforced per-row, per-query, never by giving each workspace its own table.
 
 <br/>
 
-![Siloed demo: asking a question in Workspace A, the same question in Workspace B getting an honest "I don't know", and a save_task tool call landing in Tool Logs](./github/assets/demo.gif)
+![Siloed demo: asking a question in Workspace A, the same question in Workspace B getting an honest "I don't know", and a save_task tool call landing in Tool Logs](./.github/assets/demo.gif)
 
 <sub>Real screenshots from the test evidence in <a href="./TEST.md">TEST.md</a> — not staged. Note the Render free tier cold-starts after inactivity, so the first request after a while can take ~30–60s.</sub>
 
@@ -334,7 +334,7 @@ and the exact questions to ask — lives in
 [**TEST.md → Reviewer quick-start**](./TEST.md#reviewer-quick-start), right
 next to the test log those same steps were verified against. Sample docs
 to upload (isolation fact, injection attempts, an unrelated doc for
-Workspace B) are in [`github/sample-docs/`](./github/sample-docs/). Short
+Workspace B) are in [`.github/sample-docs/`](./.github/sample-docs/). Short
 version:
 
 1. Log in with the throwaway account in TEST.md.

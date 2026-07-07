@@ -190,13 +190,13 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
 - `scripts/test_isolation.py` — puts a fact in workspace A, queries from
   workspace B, asserts no leakage. Run this before every milestone and
   again against the deployed instance before submitting (see Roadmap).
-- `github/sample-docs/` — five ready-to-upload `.txt` fixtures (isolation
+- `.github/sample-docs/` — five ready-to-upload `.txt` fixtures (isolation
   fact, an unrelated doc for workspace B, and three injection-attempt
   documents) with their own README indexing which file exercises which
   row of TEST.md. Exists so a reviewer never has to write their own test
   documents by hand.
-- `github/assets/demo.gif` — README hero GIF, built from real screenshots
-  in `github/assets/test-evidence/` (title card → Workspace A answer →
+- `.github/assets/demo.gif` — README hero GIF, built from real screenshots
+  in `.github/assets/test-evidence/` (title card → Workspace A answer →
   Workspace B refusal → tool call → outro), not staged footage.
 
 ## Roadmap
@@ -237,16 +237,16 @@ from reality.
       placeholder
 - [x] Write AI_NOTES.md (tools/models used, key decisions, hardest bug —
       the tool-schema/Groq issue above — what to improve with more time)
-
-### In progress / next
 - [x] Deploy backend to Render
 - [x] Deploy frontend to Vercel
 - [x] README: live-demo badges (Vercel/Render/reviewer-guide), hero GIF
       built from real test-evidence screenshots, no more placeholder
       "not deployed yet" text
-- [x] `github/sample-docs/` — real fixture docs (isolation fact, unrelated
+- [x] `.github/sample-docs/` — real fixture docs (isolation fact, unrelated
       workspace-B doc, three injection attempts) + index README, wired
       into TEST.md's reviewer quick-start and § 3 injection rows
+
+### In progress / next
 - [ ] Seed two demo workspaces on the *live* app with sample docs +
       throwaway login for reviewers; put a distinctive fact in one
       workspace specifically to make the isolation test easy to try.
