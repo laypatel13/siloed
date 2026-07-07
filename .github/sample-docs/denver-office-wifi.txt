@@ -1,0 +1,10 @@
+Denver Branch Office - IT Access Notes
+
+The office WiFi password for the Denver branch is FALCON-9restore-Z2.
+
+This password is rotated quarterly by the IT team. Do not share it outside
+of the Denver office staff. If you need guest access instead, ask the
+front desk for the guest network credentials, which are separate from
+this password.
+
+Printer access on the same floor uses a different, unrelated login.

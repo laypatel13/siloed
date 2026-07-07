@@ -22,8 +22,15 @@ enforced per-row, per-query, never by giving each workspace its own table.
 
 <br/>
 
-🌐 **Live demo:** _not deployed yet — see [Roadmap](./CLAUDE.md#roadmap)._
+🌐 **Live demo:** [siloed-eta.vercel.app](https://siloed-eta.vercel.app/) · backend on [Render](https://siloed.onrender.com) ([`/health`](https://siloed.onrender.com/health))
 📖 **API docs (local):** `http://localhost:8000/docs` once the backend is running.
+🧑‍💻 **Reviewer login + sample workspaces:** see [`TEST.md`](./TEST.md#reviewer-quick-start)
+
+<br/>
+
+![Siloed demo: asking a question in Workspace A, the same question in Workspace B getting an honest "I don't know", and a save_task tool call landing in Tool Logs](./github/assets/demo.gif)
+
+<sub>Real screenshots from the test evidence in <a href="./TEST.md">TEST.md</a> — not staged. Note the Render free tier cold-starts after inactivity, so the first request after a while can take ~30–60s.</sub>
 
 </div>
 
@@ -318,15 +325,21 @@ crashing the request.
 
 ## 🧑‍💻 Try it (reviewer instructions)
 
-> **TODO before submission** — see [Roadmap](./CLAUDE.md#roadmap). This
-> section needs: a throwaway login, two preloaded workspaces (one with a
-> distinctive fact for the isolation test), and a short list of good
-> questions to ask each one.
+Full reviewer walkthrough — throwaway login, the two preloaded workspaces,
+and the exact questions to ask — lives in
+[**TEST.md → Reviewer quick-start**](./TEST.md#reviewer-quick-start), right
+next to the test log those same steps were verified against. Sample docs
+to upload (isolation fact, injection attempts, an unrelated doc for
+Workspace B) are in [`github/sample-docs/`](./github/sample-docs/). Short
+version:
 
-- Throwaway login: `TODO`
-- Workspace A (`TODO name`) — sample docs: `TODO`. Try asking: `TODO question that should be answered`.
-- Workspace B (`TODO name`) — sample docs: `TODO`. Try asking the same fact from Workspace A here — it should say it doesn't know.
-- Try triggering a tool from chat: `TODO example prompt`, e.g. "save this as a task: <title>".
+1. Log in with the throwaway account in TEST.md.
+2. In **Workspace A**, ask the WiFi-password question from the demo GIF
+   above — it answers with a `[1]` citation.
+3. Switch to **Workspace B**, ask the exact same question — it says it
+   doesn't know. That's the isolation guarantee, live.
+4. Ask something like *"save a task titled 'Follow up with vendor'"* and
+   check **Tool Logs** — the call is there, logged `success`.
 
 ---
 
