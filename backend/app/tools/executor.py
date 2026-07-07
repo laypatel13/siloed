@@ -14,10 +14,10 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from db.client import get_connection
-from tools.registry import validate_tool_call
-from tools.save_task import run_save_task
-from tools.send_slack_summary import run_send_slack_summary
+from app.db.client import get_connection
+from app.tools.registry import validate_tool_call
+from app.tools.save_task import run_save_task
+from app.tools.send_slack_summary import run_send_slack_summary
 
 
 @dataclass

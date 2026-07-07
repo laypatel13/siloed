@@ -23,13 +23,13 @@ tools, and avoids having to reason about infinite tool-call loops.
 import json
 from uuid import UUID
 
-from chat.citations import build_citations
-from chat.llm import complete
-from chat.prompt import build_messages
-from db.client import get_connection
-from retrieval.vector_search import search_chunks
-from tools.executor import execute_tool_call
-from tools.registry import get_tool_definitions
+from app.chat.citations import build_citations
+from app.chat.llm import complete
+from app.chat.prompt import build_messages
+from app.db.client import get_connection
+from app.retrieval.vector_search import search_chunks
+from app.tools.executor import execute_tool_call
+from app.tools.registry import get_tool_definitions
 
 # Cosine similarity below this is treated as "not actually relevant" --
 # pgvector will always return top_k rows even if none of them are a good

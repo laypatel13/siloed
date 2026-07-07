@@ -3,9 +3,9 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, Header
 from supabase import create_client, Client
 
-from config import settings
-from db.client import get_connection
-from models.schemas import CurrentUser
+from app.core.config import settings
+from app.db.client import get_connection
+from app.schemas.domain import CurrentUser
 
 _supabase: Client = create_client(settings.supabase_url, settings.supabase_anon_key)
 

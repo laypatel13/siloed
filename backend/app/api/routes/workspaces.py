@@ -2,9 +2,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from auth.deps import get_current_user, verify_workspace_access
-from db.client import get_connection
-from models.schemas import CurrentUser, Workspace, WorkspaceCreate
+from app.api.deps import get_current_user, verify_workspace_access
+from app.db.client import get_connection
+from app.schemas.domain import CurrentUser, Workspace, WorkspaceCreate
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 

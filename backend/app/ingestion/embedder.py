@@ -5,7 +5,7 @@ providers later only touches this one file, not retrieval/ingestion code.
 
 import google.generativeai as genai
 
-from config import settings
+from app.core.config import settings
 
 genai.configure(api_key=settings.gemini_api_key)
 

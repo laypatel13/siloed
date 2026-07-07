@@ -7,7 +7,7 @@ should only touch this file.
 
 from groq import Groq
 
-from config import settings
+from app.core.config import settings
 
 _client = Groq(api_key=settings.groq_api_key)
 

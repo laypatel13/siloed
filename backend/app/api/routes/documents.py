@@ -2,9 +2,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, UploadFile
 
-from auth.deps import verify_workspace_access
-from db.client import get_connection
-from ingestion.pipeline import ingest_document
+from app.api.deps import verify_workspace_access
+from app.db.client import get_connection
+from app.ingestion.pipeline import ingest_document
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/documents", tags=["documents"])
 

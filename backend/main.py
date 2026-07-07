@@ -1,27 +1,9 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+"""
+Compatibility shim: keeps `uvicorn main:app --reload` working unchanged
+after the app moved into the `app/` package. The real application lives
+in app/main.py -- this file just re-exports it.
+"""
 
-from config import settings
+from app.main import app
 
-from routes import chat, documents, tool_logs, workspaces
-
-app = FastAPI(title="siloed")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[settings.frontend_url],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-@app.get("/health")
-def health():
-    return {"status": "ok", "environment": settings.environment}
-
-
-app.include_router(workspaces.router)
-app.include_router(documents.router)
-app.include_router(chat.router)
-app.include_router(tool_logs.router)
+__all__ = ["app"]

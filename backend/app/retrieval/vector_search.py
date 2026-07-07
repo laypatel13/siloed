@@ -11,8 +11,8 @@ applied by filtering results in Python after the fact.
 
 from uuid import UUID
 
-from db.client import get_connection
-from ingestion.embedder import embed_text
+from app.db.client import get_connection
+from app.ingestion.embedder import embed_text
 
 DEFAULT_TOP_K = 5
 

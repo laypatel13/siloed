@@ -1,10 +1,10 @@
 import hashlib
 from uuid import UUID
 
-from db.client import get_connection
-from ingestion.chunker import chunk_text
-from ingestion.embedder import embed_batch
-from ingestion.extractor import extract_text
+from app.db.client import get_connection
+from app.ingestion.chunker import chunk_text
+from app.ingestion.embedder import embed_batch
+from app.ingestion.extractor import extract_text
 
 
 def hash_content(raw_bytes: bytes) -> str:

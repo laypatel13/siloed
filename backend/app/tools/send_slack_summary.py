@@ -15,8 +15,8 @@ from uuid import UUID
 
 import httpx
 
-from config import settings
-from tools.schemas import SendSlackSummaryArgs
+from app.core.config import settings
+from app.tools.schemas import SendSlackSummaryArgs
 
 
 def run_send_slack_summary(workspace_id: UUID, args: SendSlackSummaryArgs) -> dict:

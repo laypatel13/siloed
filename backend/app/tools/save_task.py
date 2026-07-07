@@ -6,8 +6,8 @@ effect recorded in the active workspace" requirement from the brief.
 
 from uuid import UUID
 
-from db.client import get_connection
-from tools.schemas import SaveTaskArgs
+from app.db.client import get_connection
+from app.tools.schemas import SaveTaskArgs
 
 
 def run_save_task(workspace_id: UUID, args: SaveTaskArgs) -> dict:

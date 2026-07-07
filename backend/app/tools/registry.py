@@ -14,7 +14,7 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
-from tools.schemas import SaveTaskArgs, SendSlackSummaryArgs
+from app.tools.schemas import SaveTaskArgs, SendSlackSummaryArgs
 
 
 @dataclass
