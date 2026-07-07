@@ -6,10 +6,10 @@ what's built, what's left, and the hard rules that must never be violated.
 
 ## Project
 "siloed" — a multi-workspace RAG assistant with tool calling, built for the
-Abstrabit take-home assessment (72-hour window, 30-commit target).
-FastAPI backend, React (Vite) frontend, Supabase Postgres + pgvector as a
-single shared vector store, Groq for chat + tool calling, Gemini for
-embeddings. Deployed: backend on Render, frontend on Vercel.
+Abstrabit take-home assessment (72-hour window). FastAPI backend, React
+(TanStack Start) frontend, Supabase Postgres + pgvector as a single shared
+vector store, Groq for chat + tool calling, Gemini for embeddings. Deployed:
+backend on Render, frontend on Vercel.
 
 Assessment brief: multi-tenant RAG + tool calling, graded primarily on
 workspace isolation (fact in workspace A must never leak when queried from
@@ -29,9 +29,17 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
   "ignore previous instructions"-style content inside chunks as inert —
   system prompt must explicitly frame retrieved chunks as untrusted content
   to discuss, never as commands to follow.
-- Every tool call from the LLM must be validated against its pydantic schema
-  before execution. Unknown tool name or malformed args -> reject gracefully,
-  log the failure (status="error" in tool_calls table), never crash.
+- Every tool call from the LLM must be validated before execution — both
+  schema shape (pydantic) and content (e.g. a required field can't be
+  satisfied by an empty string or an invented placeholder). Unknown tool
+  name, malformed args, or a failed content check -> reject gracefully, log
+  the failure (status="error" in tool_calls table), never crash. Keep the
+  JSON schema handed to the LLM itself permissive enough that a request the
+  model can't satisfy (e.g. "save a task with no title") doesn't cause the
+  *model provider's own completion call* to fail — enforce "must be
+  non-empty" ourselves, downstream, where a rejection is just a normal
+  ToolValidationResult, not a crashed request. (See AI_NOTES.md — this is
+  the hardest bug hit so far.)
 - Never hardcode or log API keys, DB credentials, or webhook URLs. Read from
   env only via config.py. `.env` is gitignored; `.env.example` has
   placeholders only.
@@ -39,12 +47,16 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
   re-chunking/re-embedding if a document with the same hash already exists
   in that workspace. Implemented in ingestion/pipeline.py.
 - If the LLM call fails or is slow, the user's in-progress question and app
-  state must not be lost — surface an error, don't crash the session.
+  state must not be lost — surface an error, don't crash the session. Log
+  the real provider error (status/message) server-side; never swallow it
+  silently — a caught exception with no logging is invisible in production
+  and was itself the reason the hardest bug above took a while to diagnose.
 
 ## Conventions
 - Commit style: conventional commits, full words (`feature`, `fix`,
   `refactor`, `docs`, `chore`, `test`), scoped where relevant, e.g.
-  `feature(ingestion): add chunker`.
+  `feature(ingestion): add chunker`. Commit history itself lives in `git
+  log`, not duplicated here — see Roadmap below for what's left.
 - Python: FastAPI + pydantic models for all request/response shapes.
 - Chunking: word-based fixed-size, ~350 words (~500 tokens), 50 word overlap.
   Documented as a known simplification in AI_NOTES.md rather than pulling in
@@ -68,18 +80,17 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
 - `backend/retrieval/vector_search.py` — `search_chunks(workspace_id, query,
   top_k)`: embeds the query, runs a cosine-similarity search with
   `where workspace_id = %s` inside the SQL itself, joins `documents` for
-  filename. Used by chat/ once that's built.
+  filename.
 - `backend/chat/prompt.py` — `build_messages(query, chunks)`: builds the
-  system + user messages for the LLM. Injection hardening (commit 12, after
-  adversarial testing): injection-defense is rule #1 in the system prompt,
-  naming concrete attack patterns (not just one example); each chunk is
-  wrapped in `<source>...</source>` fences (`build_context_block`) rather
-  than a bare prefix, giving the model a structural boundary; a literal
-  `<source>`/`</source>` string inside a chunk's own content is escaped
-  first (`_defang_source_tags`) so a chunk can't break out of its own
-  fence; a `SOURCES_REMINDER` repeats the rule immediately before the
-  QUESTION line (sandwich defense). Requires inline [n] citations, forbids
-  outside knowledge.
+  system + user messages for the LLM. Injection hardening: injection-defense
+  is rule #1 in the system prompt, naming concrete attack patterns (not just
+  one example); each chunk is wrapped in `<source>...</source>` fences
+  (`build_context_block`) rather than a bare prefix, giving the model a
+  structural boundary; a literal `<source>`/`</source>` string inside a
+  chunk's own content is escaped first (`_defang_source_tags`) so a chunk
+  can't break out of its own fence; a `SOURCES_REMINDER` repeats the rule
+  immediately before the QUESTION line (sandwich defense). Requires inline
+  [n] citations, forbids outside knowledge.
 - `backend/chat/citations.py` — `build_citations(answer_text, chunks)`:
   parses [n] markers out of the model's answer and resolves them back to
   filename/snippet/similarity for the frontend. Out-of-range markers are
@@ -97,14 +108,25 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
   question): if the model proposes any, `tools/executor.execute_tool_call`
   runs each one, results are fed back, and one follow-up completion (no
   `tools` this round) produces the final summary text. Supports one round
-  of tool calls, not recursive multi-round proposals. Persists both user +
-  assistant messages to `chat_messages`.
+  of tool calls, not recursive multi-round proposals. Both Groq calls
+  (initial + follow-up) are wrapped in `try/except APIError`, logged with
+  the actual status/message, and degrade to a canned error string rather
+  than crashing the request. Persists both user + assistant messages to
+  `chat_messages`.
 - `backend/routes/chat.py` — `POST /workspaces/{workspace_id}/chat` (send a
   message, get answer+citations), `GET` same path (history). Both behind
   `verify_workspace_access`. Wired into `main.py`.
 - `backend/tools/schemas.py` — pydantic args schemas per tool
-  (`SaveTaskArgs`, `SendSlackSummaryArgs`) -- the validation boundary
-  before any tool executes.
+  (`SaveTaskArgs`, `SendSlackSummaryArgs`). Deliberately permissive at the
+  JSON-schema level (fields optional, no `min_length`) so the LLM provider
+  can always generate a syntactically valid tool call; the "must actually
+  have content" rule is enforced ourselves in `registry.validate_tool_call`,
+  not baked into the schema handed to the model.
+- `backend/tools/registry.py` — `TOOL_REGISTRY`, `get_tool_definitions()`
+  (schemas -> Groq function-calling format), `validate_tool_call(name,
+  raw_arguments)`: pydantic validation + a business-rule content check
+  (non-empty title/summary) as two separate, always-graceful rejection
+  paths.
 - `backend/tools/executor.py` — `execute_tool_call(workspace_id, tool_name,
   raw_arguments)`: the single choke point tool execution passes through --
   validate (via registry) -> dispatch (`_DISPATCH` table) -> run -> always
@@ -119,141 +141,114 @@ prompt-injection resistance, graceful failure, and clean code + AI_NOTES.md.
   webhook isn't configured or the POST fails; executor.py's try/except
   around the handler turns that into a logged `status="error"` row instead
   of a crash. Wired into `_DISPATCH` in tools/executor.py.
+- `backend/api/routes/tools.py` — `GET /workspaces/{workspace_id}/tools`
+  (lists tool name/description/fields for a UI to render), `POST
+  /workspaces/{workspace_id}/tools/{tool_name}/invoke` (runs a tool directly
+  through the same `execute_tool_call` path the LLM's own calls use, for
+  debugging/demoing a tool without going through the model). Both behind
+  `verify_workspace_access`. Not a required part of the brief's flow — the
+  model still decides when to call a tool in the actual chat experience —
+  this is a debugging/demo convenience layered on top.
 - `backend/routes/tool_logs.py` — `GET /workspaces/{workspace_id}/tasks`,
   `GET /workspaces/{workspace_id}/tool-calls` (the dashboard's tool-call
   log). Both behind `verify_workspace_access`. Wired into `main.py`.
 - `backend/routes/workspaces.py` — list/create/get workspace (built)
 - `backend/routes/documents.py` — upload/list documents (built)
-- `frontend/` — TanStack Start (React 19) + shadcn/ui skeleton; pages were
-  scaffolded visually first (Lovable) with mock data/timeouts, now being
-  wired to the real backend/Supabase one page at a time.
+- `frontend/` — TanStack Start (React 19) + shadcn/ui, wired end-to-end to
+  the real backend (no more mock data on any route).
 - `frontend/src/lib/supabase.ts` — `supabase`: supabase-js client built
   from `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`. Must point at the
   same Supabase project the backend verifies tokens against
   (`auth/deps.py`), or every API call 401s.
 - `frontend/src/routes/login.tsx` — real `supabase.auth.signInWithPassword`
-  call (replacing the earlier mock `setTimeout` + redirect). Shows
-  Supabase's own error message inline on failure, and redirects straight to
-  `/chat` on mount if a session already exists. Other routes
-  (chat/documents/tasks/tool-logs) are still on mock data pending their own
-  commits.
+  call, shows Supabase's own error message inline on failure, redirects
+  straight to `/chat` on mount if a session already exists.
 - `frontend/src/lib/api.ts` — thin fetch wrapper for backend workspace,
-  document, chat, task, and tool-call endpoints (`listWorkspaces`,
-  `createWorkspace`, `listDocuments`, `uploadDocument`, `getChatHistory`,
-  `sendChatMessage`, `listTasks`, `listToolCalls`), attaching the current
-  Supabase access token as `Authorization: Bearer`. Base URL from
-  `VITE_API_URL` (defaults to `http://localhost:8000` for local dev). Maps
-  the backend's `Citation.marker` field to the frontend's `Citation.number`
-  so the existing `[n]` popover rendering in `chat.tsx` didn't need to
-  change.
-- `frontend/src/lib/workspace-context.tsx` — now fetches real workspaces
-  from `GET /workspaces` (previously read the `mockWorkspaces` constant)
-  and exposes `isLoading`/`error`/`createWorkspace` alongside the existing
-  `activeWorkspace`/`setActiveWorkspaceId`. `activeWorkspace` is
-  `ApiWorkspace | null` at the type level (empty for a brand-new user with
-  no workspaces yet); `useActiveWorkspace()` is the non-null variant pages
-  use, since `AppShell`'s `WorkspaceGate` guarantees one is active before
-  rendering any page content.
-- `frontend/src/components/app-shell.tsx` — now the single place that ties
-  the dashboard together: `AuthGuard` redirects to `/login` if there's no
-  Supabase session (checked on mount and on every auth-state change, e.g.
-  token expiry or sign-out in another tab); `WorkspaceGate` blocks
-  rendering the sidebar/page content until workspaces have loaded, and
-  prompts a brand-new user to create their first workspace instead of
-  showing an empty dashboard. Every route (chat/documents/tasks/tool-logs)
-  renders through `AppShell`, so both guards apply everywhere at once.
-- `frontend/src/components/app-sidebar.tsx` — footer now shows the real
-  signed-in user's email (from `supabase.auth.getUser()`) instead of the
-  mock `currentUser`, and "sign out" calls `supabase.auth.signOut()` and
-  navigates to `/login` instead of just linking there.
-- `frontend/src/routes/tasks.tsx`, `frontend/src/routes/tool-logs.tsx` —
-  wired to `GET /workspaces/{workspace_id}/tasks` and
-  `GET /workspaces/{workspace_id}/tool-calls` respectively, replacing the
-  `mockTasks`/`mockToolLogs` filtering. Both re-fetch on workspace switch
-  and show a loading state + inline error banner instead of crashing on a
-  failed request.
-- `frontend/src/routes/chat.tsx` — now wired to the real backend
-  (`GET`/`POST /workspaces/{workspace_id}/chat`) instead of the mock
-  timeout reply: loads history on mount/workspace switch, sends the typed
-  message, renders `answer` + mapped citations, and falls back to an
-  inline "something went wrong" assistant bubble (not a crash) if the
-  request fails. History/typing state resets on every workspace switch.
-- `frontend/src/routes/documents.tsx` — now wired to the real backend
-  (`GET`/`POST /workspaces/{workspace_id}/documents`) instead of the mock
-  `setTimeout` simulation: uploads show an optimistic "processing" row,
-  then either refresh from the server (picking up the backend's
-  idempotency check) or flip to a "Failed" badge on error. List re-fetches
-  whenever `activeWorkspace` changes. Delete is still local-only -- there's
-  no DELETE route on the backend yet.
-  `useWorkspace()`: holds the single active-workspace id for the whole app,
-  seeded from `mockWorkspaces` and persisted to `localStorage` so a reload
-  keeps the same workspace selected. This is the frontend-only stand-in for
-  the isolation guarantee the backend enforces in SQL: every page reads
-  `activeWorkspace` from context rather than hardcoding `"ws-1"`, so no
-  workspace's data (chat, documents, tasks, tool logs) is ever rendered
-  while another workspace is active. Wired in at `AppShell`, one level
-  above the sidebar and all page content.
-- `frontend/src/components/app-sidebar.tsx` — workspace dropdown now reads
-  `workspaces`/`activeWorkspace` from `useWorkspace()` and calls
-  `setActiveWorkspaceId` on select (previously rendered the list but did
-  nothing on click); a check icon marks the current workspace.
-- `frontend/src/routes/{chat,documents,tasks,tool-logs}.tsx` — all four
-  filter their mock data by `activeWorkspace.id` instead of the hardcoded
-  `"ws-1"`, and show `activeWorkspace.name` in the header badge instead of
-  a hardcoded "Product Team". `chat.tsx` and `documents.tsx` also reset
-  their local component state (messages/input/typing, documents/uploading)
-  in a `useEffect` keyed on `activeWorkspace.id`, so switching workspaces
-  can't leak in-progress local state (e.g. a message being typed, or a
-  document mid-"upload") from the workspace you just left.
-- `scripts/test_isolation.py` — NOT YET BUILT. Manual pre-submission
-  isolation/injection check: puts a fact in workspace A, queries from
-  workspace B, asserts no leakage.
+  document, chat, task, tool-call, and tool-definition/invoke endpoints,
+  attaching the current Supabase access token as `Authorization: Bearer`.
+  Base URL from `VITE_API_URL` (defaults to `http://localhost:8000` for
+  local dev).
+- `frontend/src/contexts/workspace-context.tsx` — fetches real workspaces
+  from `GET /workspaces`, exposes `isLoading`/`error`/`createWorkspace`
+  alongside `activeWorkspace`/`setActiveWorkspaceId`. `useActiveWorkspace()`
+  is the non-null variant pages use, since `AppShell`'s `WorkspaceGate`
+  guarantees one is active before rendering any page content.
+- `frontend/src/components/layout/app-shell.tsx` — `AuthGuard` redirects to
+  `/login` if there's no Supabase session; `WorkspaceGate` blocks rendering
+  until workspaces have loaded, prompting a brand-new user to create their
+  first workspace. Every route renders through `AppShell`.
+- `frontend/src/components/layout/app-sidebar.tsx` — workspace switcher,
+  nav (Chat / Documents / Tasks / Tools / Tool Logs), real signed-in user
+  email + sign-out.
+- `frontend/src/routes/{chat,documents,tasks,tool-logs,tools}.tsx` — all
+  wired to the real backend, all re-fetch and reset local state on
+  workspace switch (so no in-progress local state — a typed message, an
+  uploading file — leaks from the workspace you just left), all show a
+  loading state + inline error banner instead of crashing on a failed
+  request.
+- `scripts/test_isolation.py` — puts a fact in workspace A, queries from
+  workspace B, asserts no leakage. Run this before every milestone and
+  again against the deployed instance before submitting (see Roadmap).
 
-## Commit roadmap (target ~30 commits, conventional + scoped)
-Done so far, in order:
-1. `initial: project scaffold, schema, config`
-2. `chore: rename project to siloed`
-3. `feature(auth): supabase login + workspace model`
-4. `feature(ingestion): extractor, chunker, embedder, idempotent pipeline + upload route`
-5. `feature(retrieval): scoped vector search (workspace filter inside query)`
-6. `feature(chat): RAG prompt construction + citation formatting`
-7. `feature(chat): honest "I don't know" fallback + chat route`
-8. `feature(tools): pydantic schemas + tool registry`
-9. `feature(tools): save_task tool + execution + logging`
-10. `feature(tools): send_slack_summary tool`
-11. `feature(chat): wire tool-calling loop into chat (model proposes, app executes)`
-12. `fix(injection): harden system prompt against embedded instructions in chunks`
-13. `feature(frontend): supabase-js login page`
-14. `feature(frontend): workspace switcher`
-15. `feature(frontend): document upload UI`
-16. `feature(frontend): chat window + citation display`
-17. `feature(frontend): tool-call log view`
-18. `feature(frontend): dashboard layout tying it together`
+## Roadmap
+Living checklist, not a fixed commit list — commit history itself lives in
+`git log`. Check items off as they're actually done; don't let this drift
+from reality.
 
-Remaining, in planned order:
-19. `test: scripts/test_isolation.py (A/B leak test + injection test)`
-20. `fix: ...` (whatever isolation/injection testing turns up)
-21. `docs: README run instructions, .env.example completeness check`
-22. `docs: AI_NOTES.md`
-23. `chore: deploy backend to Render`
-24. `chore: deploy frontend to Vercel`
-25. `chore: seed two demo workspaces + sample docs for reviewer testing`
-26. `docs: README test-account + reviewer instructions`
-27+ — buffer for real `fix`/`refactor` commits as bugs surface during testing
+### Shipped
+- [x] Supabase auth + workspace model, `verify_workspace_access` on every
+      workspace-scoped route
+- [x] Ingestion pipeline: extract -> chunk -> embed -> store, idempotent via
+      content hash
+- [x] Scoped retrieval: workspace filter inside the SQL query itself
+- [x] RAG prompt construction with prompt-injection hardening (`<source>`
+      fencing + sandwich reminder)
+- [x] Honest "I don't know" fallback gated on retrieval relevance, not on
+      whatever the model says
+- [x] Tool calling loop: `save_task` + `send_slack_summary`, schema
+      validation, always-logged execution, never crashes
+- [x] Fixed: tool schemas no longer force a required/non-empty field at the
+      JSON-schema level Groq itself enforces — content rules (non-empty
+      title/summary) now enforced downstream in `validate_tool_call`
+      instead, so an unsatisfiable request (e.g. "no title") degrades to a
+      clean rejection, not a failed completion call
+- [x] Groq API errors (initial + follow-up completion) now logged with real
+      status/message instead of silently swallowed
+- [x] Full frontend wired to the real backend (auth, workspace switcher,
+      documents, chat + citations, tasks, tool logs) — no page still on
+      mock data
+- [x] Manual tool invocation: `GET/POST .../tools[/invoke]` + a "Tools" page
+      to call a tool directly for debugging/demoing, outside the chat loop
+- [x] `scripts/test_isolation.py` written (A/B leak + injection check)
+
+### In progress / next
+- [ ] Run `test_isolation.py` (and a manual prompt-injection doc test)
+      against the **deployed** instance, not just local — don't trust the
+      local pass alone
+- [ ] Fix README: broken schema path (`backend/db/schema.sql` ->
+      `backend/migrations/schema.sql`), unfinished test-account/sample-data
+      placeholder
+- [ ] Write AI_NOTES.md (tools/models used, key decisions, hardest bug —
+      the tool-schema/Groq issue above — what to improve with more time)
+- [ ] Deploy backend to Render
+- [ ] Deploy frontend to Vercel
+- [ ] Seed two demo workspaces with sample docs + a throwaway login for
+      reviewers; put a distinctive fact in one workspace specifically to
+      make the isolation test easy for a reviewer to try
+- [ ] Optional: reject invented placeholder titles (e.g. "Untitled Task")
+      in `save_task`, not just empty ones, so the model can't quietly
+      satisfy "no title" by making one up
+- [ ] Optional stretch: retrieval-debug view (which chunks/workspace an
+      answer drew from) — cheap to add since `similarity` is already
+      returned by `search_chunks`
+- [ ] Final pass: confirm no secrets in repo/client code/logs, confirm
+      `.env.example` is complete and placeholder-only
 
 ## Testing before submission
 Always run `scripts/test_isolation.py` before considering a milestone done:
 puts a fact in workspace A, queries from workspace B, asserts no leakage.
-Also manually test: unrelated question -> "I don't know"; malformed tool
-args -> graceful rejection; injection doc -> instructions ignored;
-re-upload same doc -> no duplicate chunks.
-
-## Deliverables checklist (from assessment brief)
-- [ ] Deployed public URL, reachable
-- [ ] GitHub repo, clean commit history
-- [ ] README.md — what it does, local run steps, env vars, deploy notes
-- [ ] .env.example — no real secrets
-- [ ] Throwaway test login + 2 preloaded workspaces w/ sample docs
-- [ ] CLAUDE.md (this file) included as-is
-- [ ] AI_NOTES.md (~1 page): tools/models used, 2-3 key decisions + why,
-      hardest bug AI caused, what to improve with more time
+Also manually test: unrelated question -> "I don't know"; malformed/missing
+tool args -> graceful rejection (check both empty-field and unsatisfiable
+requests, e.g. "no title"); injection doc -> instructions ignored; re-upload
+same doc -> no duplicate chunks. Re-run all of the above against the
+deployed instance, not just local, before submitting.
