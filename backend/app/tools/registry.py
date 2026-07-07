@@ -29,7 +29,9 @@ TOOL_REGISTRY: dict[str, ToolDefinition] = {
         name="save_task",
         description=(
             "Save a task/to-do item for this workspace. Use when the user "
-            "explicitly asks you to save, log, or track a task or action item."
+            "explicitly asks you to save, log, or track a task or action item. "
+            "A non-empty title is required -- if the user hasn't given one, "
+            "ask them for it instead of calling this tool with a blank title."
         ),
         args_schema=SaveTaskArgs,
     ),
@@ -38,7 +40,7 @@ TOOL_REGISTRY: dict[str, ToolDefinition] = {
         description=(
             "Send a short summary message to the workspace's Slack channel. "
             "Use only when the user explicitly asks to send/post/share a "
-            "summary to Slack."
+            "summary to Slack. A non-empty summary is required."
         ),
         args_schema=SendSlackSummaryArgs,
     ),
@@ -73,11 +75,24 @@ class ToolValidationResult:
     error: str | None = None
 
 
+# Business-rule checks that go beyond what the pydantic schema alone
+# enforces -- kept here, separate from schemas.py, specifically so the
+# JSON schema handed to Groq stays permissive (see schemas.py's note) while
+# we still refuse to actually execute a call that's missing real content.
+def _content_error(name: str, parsed: BaseModel) -> str | None:
+    if name == "save_task" and not (parsed.title and parsed.title.strip()):
+        return "A non-empty title is required to save a task."
+    if name == "send_slack_summary" and not (parsed.summary and parsed.summary.strip()):
+        return "A non-empty summary is required to send a Slack message."
+    return None
+
+
 def validate_tool_call(name: str, raw_arguments: dict[str, Any]) -> ToolValidationResult:
-    """Validates a proposed tool call before execution. Two failure modes,
-    both handled the same way: reject gracefully, never raise, never run
-    anything. Callers are expected to log a rejected call with
-    status="error" in the tool_calls table (wired in a later commit).
+    """Validates a proposed tool call before execution. Rejects gracefully,
+    never raises, never runs anything, for any of: unknown tool name,
+    schema validation failure, or a business-rule content check (e.g. an
+    empty title). Callers are expected to log a rejected call with
+    status="error" in the tool_calls table.
     """
     tool = TOOL_REGISTRY.get(name)
     if tool is None:
@@ -87,5 +102,9 @@ def validate_tool_call(name: str, raw_arguments: dict[str, Any]) -> ToolValidati
         parsed = tool.args_schema.model_validate(raw_arguments)
     except ValidationError as e:
         return ToolValidationResult(ok=False, error=str(e))
+
+    content_error = _content_error(name, parsed)
+    if content_error:
+        return ToolValidationResult(ok=False, error=content_error)
 
     return ToolValidationResult(ok=True, parsed_args=parsed)

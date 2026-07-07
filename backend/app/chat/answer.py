@@ -21,7 +21,10 @@ tools, and avoids having to reason about infinite tool-call loops.
 """
 
 import json
+import logging
 from uuid import UUID
+
+from groq import APIError
 
 from app.chat.citations import build_citations
 from app.chat.llm import complete
@@ -31,6 +34,8 @@ from app.retrieval.vector_search import search_chunks
 from app.tools.executor import execute_tool_call
 from app.tools.registry import get_tool_definitions
 
+logger = logging.getLogger(__name__)
+
 # Cosine similarity below this is treated as "not actually relevant" --
 # pgvector will always return top_k rows even if none of them are a good
 # match, so a floor is needed on top of "did we get any rows at all".
@@ -39,6 +44,22 @@ MIN_RELEVANT_SIMILARITY = 0.5
 FALLBACK_ANSWER = (
     "I don't know -- I couldn't find anything in this workspace's documents "
     "that answers that question."
+)
+
+# Shown when the LLM call itself fails (Groq API error, rate limit, bad
+# request from a malformed generation, etc.) -- per CLAUDE.md's hard rule,
+# this must surface as a normal answer, never a crashed request.
+LLM_ERROR_ANSWER = (
+    "Something went wrong generating a response -- please try rephrasing "
+    "your question or try again in a moment."
+)
+
+# Shown when the model's initial call succeeds and a tool was executed, but
+# the follow-up summary call fails -- the tool's own outcome (success or
+# error) is still visible in Tool Logs regardless.
+TOOL_SUMMARY_ERROR_ANSWER = (
+    "I completed that action, but couldn't generate a summary of it. "
+    "Check Tool Logs to see what happened."
 )
 
 
@@ -55,6 +76,19 @@ def _save_message(workspace_id: UUID, role: str, content: str, citations: list[d
                 (str(workspace_id), role, content, json.dumps(citations, default=str) if citations else None),
             )
         conn.commit()
+
+
+def _log_groq_error(context: str, e: APIError) -> None:
+    # Previously this error was swallowed with no logging at all, which is
+    # why failures like the empty-title save_task case were invisible in
+    # the server console despite a 200 being returned to the client.
+    logger.error(
+        "Groq API error during %s: status=%s message=%s body=%s",
+        context,
+        getattr(e, "status_code", "unknown"),
+        str(e),
+        getattr(e, "body", None),
+    )
 
 
 def _run_tool_calls(workspace_id: UUID, messages: list[dict], tool_calls) -> list[dict]:
@@ -125,15 +159,38 @@ def generate_answer(workspace_id: UUID, query: str) -> dict:
     has_context = _has_relevant_context(chunks)
 
     messages = build_messages(query, chunks)
-    response_message = complete(messages, tools=get_tool_definitions())
+
+    try:
+        response_message = complete(messages, tools=get_tool_definitions())
+    except APIError as e:
+        # Covers every Groq failure mode (bad request -- e.g. the model's own
+        # generated tool call not matching the schema Groq itself enforces --
+        # rate limits, connection errors, etc). The user's question is still
+        # persisted above; we just can't answer it right now.
+        _log_groq_error("initial completion", e)
+        answer_text = LLM_ERROR_ANSWER
+        citations: list[dict] = []
+        grounded = False
+        executed_tool_calls: list[dict] = []
+        _save_message(workspace_id, "assistant", answer_text, citations)
+        return {
+            "answer": answer_text,
+            "citations": citations,
+            "grounded": grounded,
+            "tool_calls": executed_tool_calls,
+        }
 
     executed_tool_calls: list[dict] = []
     if response_message.tool_calls:
         executed_tool_calls = _run_tool_calls(workspace_id, messages, response_message.tool_calls)
         # Follow-up call with no `tools` -- we just want a plain-text
         # summary of what happened, not another round of proposals.
-        final_message = complete(messages)
-        answer_text = final_message.content or ""
+        try:
+            final_message = complete(messages)
+            answer_text = final_message.content or ""
+        except APIError as e:
+            _log_groq_error("follow-up summary completion", e)
+            answer_text = TOOL_SUMMARY_ERROR_ANSWER
         citations = build_citations(answer_text, chunks) if has_context else []
         grounded = has_context
     elif has_context:
