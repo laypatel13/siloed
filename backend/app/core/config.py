@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     groq_model: str = "llama-3.3-70b-versatile"
 
     gemini_api_key: str
-    gemini_embedding_model: str = "text-embedding-004"
+    gemini_embedding_model: str = "gemini-embedding-001"
 
     slack_webhook_url: str = ""
 

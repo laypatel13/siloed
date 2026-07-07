@@ -24,6 +24,7 @@ def embed_text(text: str, task_type: str = "retrieval_document") -> list[float]:
         model=f"models/{settings.gemini_embedding_model}",
         content=text,
         task_type=task_type,
+        output_dimensionality=EMBEDDING_DIM,
     )
     return result["embedding"]
 
