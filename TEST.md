@@ -7,9 +7,10 @@ eyes. Run the full pass once locally, then again against the **deployed**
 instance before submitting (a local pass doesn't guarantee a deployed pass —
 env vars, CORS, and cold starts are a different failure surface).
 
-Screenshots go in `./test-evidence/` (gitignored from the app build, kept in
-the repo for review) — reference them by filename in the `Screenshot` column
-so this file stays readable without images embedded inline.
+Screenshots go in `.github/assets/test-evidence/` (gitignored from the app
+build, kept in the repo for review) — reference them by filename in the
+`Screenshot` column so this file stays readable without images embedded
+inline.
 
 ---
 
@@ -17,11 +18,11 @@ so this file stays readable without images embedded inline.
 
 | # | Test | Steps | Result | Screenshot |
 |---|------|-------|--------|------------|
-| 1.1 | Automated A/B leak test | `python scripts/test_isolation.py` (local) | ☐ Pass ☐ Fail | `01-test-isolation-local.png` (terminal output) |
-| 1.2 | Automated A/B leak test — deployed | Same script pointed at the deployed backend URL/DB | ☐ Pass ☐ Fail | `02-test-isolation-deployed.png` |
-| 1.3 | Manual A/B leak test | Upload a doc with a distinctive, made-up fact into Workspace A. Switch to Workspace B. Ask the exact question that fact answers. | ☐ Pass ☐ Fail — must get "I don't know", not the fact | `03-manual-isolation-workspace-a.png`, `04-manual-isolation-workspace-b.png` |
-| 1.4 | Cross-workspace tool isolation | Save a task in Workspace A. Switch to Workspace B → open Tasks. | ☐ Pass ☐ Fail — A's task must not appear in B | `05-tasks-isolation.png` |
-| 1.5 | Cross-user access | Try requesting another user's `workspace_id` directly against the API (e.g. via `/workspaces/{other-id}/chat`) while authenticated as a different user. | ☐ Pass ☐ Fail — expect `404`, not data | `06-cross-user-404.png` |
+| 1.1 | Automated A/B leak test | `python scripts/test_isolation.py` (local) | ☑ Pass ☐ Fail | [`01-test-isolation-local.png`](./.github/assets/test-evidence/01-test-isolation-local.png) (terminal output) |
+| 1.2 | Automated A/B leak test — deployed | Same script pointed at the deployed backend URL/DB | ☑ Pass ☐ Fail | [`02-test-isolation-deployed.png`](./.github/assets/test-evidence/02-test-isolation-deployed.png) |
+| 1.3 | Manual A/B leak test | Upload a doc with a distinctive, made-up fact into Workspace A. Switch to Workspace B. Ask the exact question that fact answers. | ☑ Pass ☐ Fail — must get "I don't know", not the fact | [`03-manual-isolation-workspace-a.png`](./.github/assets/test-evidence/03-manual-isolation-workspace-a.png), [`04-manual-isolation-workspace-b.png`](./.github/assets/test-evidence/04-manual-isolation-workspace-b.png) |
+| 1.4 | Cross-workspace tool isolation | Save a task in Workspace A. Switch to Workspace B → open Tasks. | ☑ Pass ☐ Fail — A's task must not appear in B | [`05a-tasks-isolation-workspace-a.png`](./.github/assets/test-evidence/05a-tasks-isolation-workspace-a.png), [`05b-tasks-isolation-workspace-b.png`](./.github/assets/test-evidence/05b-tasks-isolation-workspace-b.png) |
+| 1.5 | Cross-user access | Try requesting another user's `workspace_id` directly against the API (e.g. via `/workspaces/{other-id}/chat`) while authenticated as a different user. | ☑ Pass ☐ Fail — expect `404`, not data | [`06-cross-user-404.png`](./.github/assets/test-evidence/06-cross-user-404.png) |
 
 ## 2. Grounded answers / honest refusal
 
