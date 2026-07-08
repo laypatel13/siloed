@@ -245,26 +245,23 @@ from reality.
 - [x] `.github/sample-docs/` — real fixture docs (isolation fact, unrelated
       workspace-B doc, three injection attempts) + index README, wired
       into TEST.md's reviewer quick-start and § 3 injection rows
+- [x] Seed two demo workspaces on the *live* app with sample docs +
+      throwaway login for reviewers (`siloed-test1@yourdomain.com`,
+      spare `siloed-test2@yourdomain.com`); TEST.md login + both pass
+      dates filled in
+- [x] Final pass: confirm no secrets in repo/client code/logs, confirm
+      `.env.example` is complete and placeholder-only
+- [x] Record the demo video for submission; confirm `17-slack-webhook-
+      request-pending.png` (§ 4.5) — flip to a real success screenshot if
+      the webhook request has since been approved
 
 ### In progress / next
-- [ ] Seed two demo workspaces on the *live* app with sample docs +
-      throwaway login for reviewers; put a distinctive fact in one
-      workspace specifically to make the isolation test easy to try.
-      **This has to happen in a real browser against the deployed
-      Supabase project — not something an AI session without network/
-      browser access to the live app can do. Blocks the two remaining
-      TODOs in TEST.md (login, deployed-pass date).**
 - [ ] Optional: reject invented placeholder titles (e.g. "Untitled Task")
       in `save_task`, not just empty ones, so the model can't quietly
       satisfy "no title" by making one up
 - [ ] Optional stretch: retrieval-debug view (which chunks/workspace an
       answer drew from) — cheap to add since `similarity` is already
       returned by `search_chunks`
-- [ ] Final pass: confirm no secrets in repo/client code/logs, confirm
-      `.env.example` is complete and placeholder-only
-- [ ] Record the demo video for submission; confirm `17-slack-webhook-
-      request-pending.png` (§ 4.5) — flip to a real success screenshot if
-      the webhook request has since been approved
 
 ## Testing before submission
 Always run `scripts/test_isolation.py` before considering a milestone done:

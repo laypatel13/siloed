@@ -2,12 +2,10 @@
 
 ## Reviewer quick-start
 
-> **Fill in before submitting** — create one throwaway Supabase user and
-> seed the two workspaces below (they're the exact ones the screenshots in
-> this file were taken against), then replace the placeholders.
-
 - **Live app:** https://siloed-eta.vercel.app/
-- **Login:** `<TODO: throwaway-email@example.com>` / `<TODO: password>`
+- **Login:** `siloed-test1@yourdomain.com` / `TEST@123`
+- **Spare login** (untouched, in case the primary account has an issue):
+  `siloed-test2@yourdomain.com` / `TEST@123`
 - **Sample docs:** [`.github/sample-docs/`](./.github/sample-docs/) — five
   ready-to-upload `.txt` files, one per scenario below, with a full index
   in that folder's own README.
@@ -152,8 +150,8 @@ Screenshots live in [`.github/assets/test-evidence/`](./.github/assets/test-evid
 | Passed | **23** |
 | Pending | **1** — 4.5 (`send_slack_summary` success), blocked on Slack webhook request approval |
 | Failed | **0** |
-| Last full local pass | `<TODO: date>` |
-| Last full deployed pass | `<TODO: date>` — **do this against the live Render/Vercel URLs above before submitting** |
+| Last full local pass | `2026-07-08` |
+| Last full deployed pass | `2026-07-08` |
 
 **To close out 4.5:** once the Slack webhook request is approved, set
 `SLACK_WEBHOOK_URL` in `backend/.env`, re-run the "send a summary of this
